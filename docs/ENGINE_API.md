@@ -1,4 +1,4 @@
-# Dead Day — system / designer integration contract (v0.2)
+# Dead Day — system / designer integration contract (v0.3)
 
 ## Responsibility split
 - **Developer (Flutter + Dart engine)**: authoritative rules, persistence, event catalogue, companion decision logic, AI boundary and automated tests.
@@ -45,10 +45,14 @@ Always send actions through `GameController.dispatch(...)`; do **not** mutate `G
 - `encounter`, `pendingRecruitment`, companion info.
 - `journal`: most recent 24 structured `GameEventRecord` entries (`id`, `day`, `kind`, `text`). UI can display or animate these but must not infer gameplay rules by parsing Korean text.
 - `log`: a temporary fallback text field for the existing programmer UI.
+- `world`: immutable-by-run `WorldProfile` (region, biome, starting shelter, dynamic exploration site labels, initial supplies, danger offset).
+- `messages`: up to 80 saved `ChatMessage` instances, with `role`, `speaker`, `day`, `text`, and `sourceEventId`. A UI should render these in conversational order.
+- The engine can accept `EventProposal` after `DirectedEventSystem` validates region, NPC, date, and rarity. The fallback `ProceduralEventDirector` works with no LLM.
 
 **Pending decisions**: `state.encounter != null` means fight/sneak/flee must be chosen; `state.pendingRecruitment` means accept/decline must be chosen. A single event cannot be resolved twice.
 
-## Opening typewriter direction — handed to UI/UX designer
+## Chat interface and opening typewriter direction — handed to UI/UX designer
+See `docs/CHAT_AND_DIRECTOR.md` for message stream rules, auto-scroll behavior and exact designer handoff.
 On first run: dark/empty screen, **blinking text caret** before any letters appear, then the opening text is typed one glyph at a time ("다다다닥" rhythm). This is a **presentation-only effect**, not a game tick, and must not trigger AI inference per character.
 
 Implementation notes for the designer's team (not implemented by the engine):
@@ -66,6 +70,6 @@ Implementation notes for the designer's team (not implemented by the engine):
 
 ## Cross-platform/testing
 - No platform code or plugin imports under `lib/game/`.
-- Old v1 saves automatically migrate to v2; preserve this in future releases.
+- Old v1/v2 saves automatically migrate to v3; preserve this in future releases.
 - Android, iOS and Web share the same deterministic game rules.
 - Run `flutter analyze`, `flutter test`, Android and Web builds. Physical device thermal checks and iOS builds are later validation steps.

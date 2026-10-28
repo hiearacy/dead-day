@@ -66,5 +66,5 @@ A very rare unsettling-encounter branch receives an additional 0.2% engine gate;
 ## Present limitations and roadmap
 - **Implemented in code**: random world, locale-specific site descriptions, durable chat data, rule-based varied director, validation, saving and fallback.
 - **Not implemented**: actual bubbles/typewriter animation, deployed/authenticated public Gemini backend, freeform NLP, full NPC dialogue/romance/complex story-branch choices.
-- **Next**: small conditional branching event queue with two or three player choices, then scenario variety/AI benchmark.
+- **Next**: expand choice-driven event chains, deploy Gemini proxy for private tests, and benchmark output quality / latency / quotas.
 - iOS/Web/Android gameplay remains the same pure Dart engine; Web can continue with procedural director if no local model is available.

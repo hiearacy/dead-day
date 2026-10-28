@@ -39,7 +39,7 @@ Engine completes day
 DirectorContext (region, biome, health, supplies, noise, NPC, recent events)
     ↓
 ProceduralEventDirector (default lightweight fallback)
-OR future on-device AI EventDirector
+OR optional Gemini API EventDirector through a secret-holding proxy
     ↓
 EventProposal(type, premise, locationId, npcName)
     ↓

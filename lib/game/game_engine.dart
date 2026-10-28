@@ -42,7 +42,8 @@ class GameEngine {
         if (!state.canStartAction || action.zone == null) {
           return _rejected('pending_decision', before);
         }
-        state.addChat(ChatRole.player, '${action.zone!.label}을(를) 수색한다');
+        state.addChat(ChatRole.player,
+            '${state.world.siteFor(action.zone!.name)}을(를) 수색한다');
         _explore(action.zone!);
         break;
       case GameActionType.rest:
@@ -140,6 +141,7 @@ class GameEngine {
   }
 
   void _explore(Zone zone) {
+    final site = state.world.siteFor(zone.name);
     // Later days and recent combat noise increase danger, but stay bounded.
     final dayPressure = min(0.15, state.daysSurvived * 0.006);
     final noisePressure = state.noise / 400.0;
@@ -151,14 +153,14 @@ class GameEngine {
         zone: zone,
         zombies: 1 + _random.nextInt(zone == Zone.apartments ? 3 : 2),
       );
-      final text = '${zone.label}에서 물자를 찾다가 좀비 '
+      final text = '$site에서 물자를 찾다가 좀비 '
           '${state.encounter!.zombies}마리와 마주쳤다. 어떻게 할까?';
       state.log = text;
       _record('zombie_encounter', EventKind.exploration, text);
       return;
     }
     final loot = _collectLoot(zone);
-    final text = '좀비를 피해 ${zone.label}을(를) 수색했다. $loot';
+    final text = '좀비를 피해 $site을(를) 수색했다. $loot';
     _record('search_success', EventKind.exploration, text);
     _endDay(text);
   }

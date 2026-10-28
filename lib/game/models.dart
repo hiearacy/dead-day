@@ -174,7 +174,7 @@ class GameState {
       water: (json['water'] as num?)?.toInt() ?? 5,
       medicine: (json['medicine'] as num?)?.toInt() ?? 1,
       weaponLevel: (json['weaponLevel'] as num?)?.toInt() ?? 0,
-      noise: ((json['noise'] as num?)?.toInt() ?? 0).clamp(0, 100),
+      noise: ((json['noise'] as num?)?.toInt() ?? 0).clamp(0, 100).toInt(),
       gameOver: json['gameOver'] == true,
       npcMet: json['npcMet'] == true,
       pendingRecruitment: json['pendingRecruitment'] == true,

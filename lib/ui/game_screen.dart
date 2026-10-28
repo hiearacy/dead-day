@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app/game_controller.dart';
 import '../game/models.dart';
+import '../game/story_memory.dart';
 
 class GameScreen extends StatelessWidget {
   const GameScreen({required this.controller, super.key});
@@ -78,6 +79,8 @@ class GameScreen extends StatelessWidget {
                 _recruitment()
               else if (state.encounter != null)
                 _encounter(state.encounter!)
+              else if (state.pendingStory != null)
+                _storyChoices(state.pendingStory!, state)
               else
                 _mainActions(state),
               const SizedBox(height: 12),
@@ -177,6 +180,29 @@ class GameScreen extends StatelessWidget {
         onPressed: () => controller.recruit(false),
         child: const Text('거절한다'),
       ),
+    ],
+  );
+
+  // Temporary functional controls; final visual presentation belongs to UI/UX.
+  Widget _storyChoices(StoryBeat beat, GameState state) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text('이야기의 갈림길',
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      const SizedBox(height: 8),
+      Text(beat.premise),
+      for (final choice in beat.choices)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: FilledButton.tonal(
+            onPressed: state.food + choice.foodDelta < 0 ||
+                    state.water + choice.waterDelta < 0 ||
+                    state.medicine + choice.medicineDelta < 0
+                ? null
+                : () => controller.chooseStory(choice.id),
+            child: Text(choice.label),
+          ),
+        ),
     ],
   );
 

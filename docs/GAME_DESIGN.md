@@ -1,4 +1,4 @@
-# Dead Day — gameplay contract (v0.4)
+# Dead Day — gameplay contract (v0.6)
 
 ## Goal and boundaries
 Survive as many full days as possible during a zombie apocalypse. This is an offline-first **cross-platform text game**, not a world simulator. The playable v0.2 prototype has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
@@ -51,6 +51,13 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 - `StructuredAiEventDirector` supports constrained JSON from the Gemini API proxy. Cloud API quotas, privacy, network latency and abuse protections replace local-model thermal benchmarks as the primary risks.
 - Saved games migrate v1/v2/v3 -> v4. Existing UI is only a programmer prototype; design team owns visuals.
 - See `docs/SCENARIO_STORY_V04.md` for game flow, testing and handoff.
+
+## v0.6 player agency for Gemini incidents
+- `EventProposal` no longer immediately applies a mechanical effect. The rule engine creates a serialized `pendingDirectedEvent` with allowed choices.
+- `GameAction.chooseDirectedEvent` is the only permitted way to resolve those events; choices update resources/trust and causal memory.
+- Old v1-v4 saves migrate to v5. UI/UX owns final chat reveal and scrolling, while the programmer view only renders functional fallback choices.
+- Procedural fallback avoids recently seen event types where possible, to counter repetitive stories.
+- See `docs/GEMINI_EVENT_CHOICES_V06.md`.
 
 ## Companion prototype
 Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefits (rest recovery +5) and costs (food +1 and water +1 daily). Her trust responds to rationing and can trigger departure. Affection is stored but romance is **not yet implemented**.

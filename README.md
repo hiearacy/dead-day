@@ -2,7 +2,7 @@
 
 **Dead Day** is an offline-first, cross-platform zombie survival text game made with **Flutter + Dart**. The goal is to survive as many days as possible. A single game engine and save format are shared between **Android, iOS and Web**.
 
-## v0.4: authored scenarios and causal story decisions (no LLM required)
+## v0.5: Gemini API-ready scenario survival game
 - Shelter: rest or use medicine.
 - Three exploration zones: market, pharmacy, apartments.
 - Zombie encounters: fight, sneak or flee; outcomes are computed by Dart.
@@ -19,7 +19,11 @@
 - Three authored scenario bibles are selectable via `controller.newGame(scenarioId: 'lost_signal')`.
 - Persistent `StoryMemory`, `StoryThread` and `pendingStory` implement two-step stories with choices that change later events.
 - Story decisions are typed engine actions and are saved, validated and resumed after app restart.
-- Optional local-LLM JSON event adapter and a fallback interface are ready, **but no model is installed or benchmarked**.
+- Replaced the planned on-device LLM with a Gemini API proxy (Cloudflare Worker example).
+- Gemini free-tier-compatible Flash-Lite is the initial configured model; availability and quotas vary by project.
+- No Gemini API key is ever embedded in Flutter or committed to the repository.
+- On 429, network error, invalid AI JSON or missing config, game falls back to procedural events.
+- Remote AI calls are **not active until the developer deploys a proxy and supplies private test settings**.
 - Old v1/v2/v3 saves automatically migrate to v4.
 
 ## Run on Android, iOS or the Web
@@ -71,7 +75,11 @@ lib/
   game/scenario_definition.dart   # authored scenario bible catalogue
   game/story_memory.dart          # causal memories, threads and choices
   game/story_system.dart          # branching follow-up events
-  ai/structured_event_director.dart # small-model JSON adapter
+  ai/structured_event_director.dart # provider-neutral JSON parser
+  ai/gemini_proxy_text_generator.dart # HTTPS client for Gemini proxy
+  ai/ai_configuration.dart           # demo config / fallback selection
+backend/src/index.js                 # secrets-only Gemini API relay
+backend/wrangler.toml                # Cloudflare Worker settings
   game/world_profile.dart      # starting region presets and site naming
   game/chat_message.dart       # UI-agnostic conversation records
   game/directed_event_system.dart  # proposal validation / rule effects
@@ -83,9 +91,9 @@ test/game_engine_test.dart
 docs/GAME_DESIGN.md
 ```
 
-Game rules never depend on AI. **Mobile local AI** is a future optional adapter, not a requirement for Android, iOS or browser play. For Web (and devices without a validated local model), use `NoAiNarrator` and the built-in game text. An LLM may propose a situation or decorate an outcome, but only the engine may validate and execute mechanical changes.
+Game rules never depend on AI. The optional **Gemini API** event director needs internet, while the procedural fallback and local survival game keep working without it. No model download or on-device inference is required. AI may propose a situation, but only the Dart engine validates and executes mechanical changes.
 
 ## Cross-platform verification
 GitHub Actions on the `main` branch regenerates Android/Web runners and attempts `flutter analyze`, `flutter test`, `flutter build web --release`, and `flutter build apk --debug`. iOS compilation additionally needs a macOS/Xcode environment.
 
-**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md) and [chat/event director spec](docs/CHAT_AND_DIRECTOR.md) and [scenario / story specification](docs/SCENARIO_STORY_V04.md).
+**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md) and [chat/event director spec](docs/CHAT_AND_DIRECTOR.md) and [scenario / story specification](docs/SCENARIO_STORY_V04.md) and [Gemini API private-test setup](docs/GEMINI_API_SETUP.md).

@@ -118,7 +118,7 @@ class GameScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Column(children: [
-                Text(zone.label),
+                Text(state.world.siteFor(zone.name)),
                 Text(zone.description,
                   style: const TextStyle(fontSize: 12, color: Colors.white70)),
               ]),

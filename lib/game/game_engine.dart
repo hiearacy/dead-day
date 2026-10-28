@@ -107,7 +107,7 @@ class GameEngine {
     }
     final effect = _directedEvents.apply(state, proposal);
     state.lastDirectedEventDay = state.daysSurvived;
-    final text = '${proposal.premise.trim()}\\n$effect';
+    final text = '${proposal.premise.trim()}\n$effect';
     state.log = text;
     _record('director_${proposal.type.name}', EventKind.hazard, text);
     return GameResult(

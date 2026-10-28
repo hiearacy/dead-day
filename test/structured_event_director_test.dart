@@ -3,7 +3,7 @@ import 'package:dead_day/ai/event_director.dart';
 import 'package:dead_day/ai/structured_event_director.dart';
 import 'package:dead_day/game/models.dart';
 
-class FakeGenerator implements LocalTextGenerator {
+class FakeGenerator implements TextGenerator {
   FakeGenerator(this.response);
   final String response;
   int calls = 0;

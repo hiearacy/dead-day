@@ -98,7 +98,6 @@ class StorySystem {
                   ),
                 ],
         );
-      case 'unknown_visitor':
       default:
         if (thread.stage == 0) {
           return StoryBeat(

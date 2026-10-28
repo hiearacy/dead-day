@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../app/game_controller.dart';
 import '../game/models.dart';
 import '../game/story_memory.dart';
+import '../game/directed_event_choice.dart';
 
 class GameScreen extends StatelessWidget {
   const GameScreen({required this.controller, super.key});
@@ -81,6 +82,8 @@ class GameScreen extends StatelessWidget {
                 _encounter(state.encounter!)
               else if (state.pendingStory != null)
                 _storyChoices(state.pendingStory!, state)
+              else if (state.pendingDirectedEvent != null)
+                _directedChoices(state.pendingDirectedEvent!)
               else
                 _mainActions(state),
               const SizedBox(height: 12),
@@ -180,6 +183,25 @@ class GameScreen extends StatelessWidget {
         onPressed: () => controller.recruit(false),
         child: const Text('거절한다'),
       ),
+    ],
+  );
+
+  // Functional-only buttons, to be replaced by the designer's chat controls.
+  Widget _directedChoices(PendingDirectedEvent event) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Text('돌발 사건',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      const SizedBox(height: 8),
+      Text(event.premise),
+      for (final choice in event.choices)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: FilledButton.tonal(
+            onPressed: () => controller.chooseDirectedEvent(choice.id),
+            child: Text(choice.label),
+          ),
+        ),
     ],
   );
 

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../ai/narrator.dart';
+import '../ai/event_director.dart';
+import '../game/chat_message.dart';
 import '../data/save_service.dart';
 import '../game/event_record.dart';
 import '../game/game_action.dart';
@@ -9,13 +11,15 @@ import '../game/models.dart';
 /// UI adapter: gameplay decisions always go through the Dart engine.
 /// AI is optional, read-only, and invoked for notable events only.
 class GameController extends ChangeNotifier {
-  GameController({SaveService? saves, AiNarrator? narrator})
+  GameController({SaveService? saves, AiNarrator? narrator, EventDirector? director})
       : _saves = saves ?? SaveService(),
-        _narrator = narrator ?? const NoAiNarrator();
+        _narrator = narrator ?? const NoAiNarrator(),
+        _director = director ?? const NoEventDirector();
 
   final SaveService _saves;
   final AiNarrator _narrator;
-  GameEngine _engine = GameEngine();
+  final EventDirector _director;
+  GameEngine _engine = GameEngine(initialState: GameState.newRun());
   Future<void> _saveQueue = Future<void>.value();
   int _sequence = 0;
   bool _disposed = false;
@@ -30,7 +34,7 @@ class GameController extends ChangeNotifier {
     try {
       final saved = await _saves.load();
       if (_disposed) return;
-      _engine = GameEngine(initialState: saved);
+      _engine = GameEngine(initialState: saved ?? GameState.newRun());
     } catch (_) {
       error = '저장 데이터를 읽을 수 없어 새 게임으로 시작합니다.';
     } finally {
@@ -70,13 +74,39 @@ class GameController extends ChangeNotifier {
     await _persist();
 
     // Skip stale requests: a newer action or a new game may have started.
-    if (sequence == _sequence && _shouldNarrate(result)) {
+    // The director can propose a rare situation after a fully completed day.
+    // In v0.3 it is disabled by default; all normal events remain Dart rules.
+    var directedEventAccepted = false;
+    if (sequence == _sequence &&
+        result.dayAfter > result.dayBefore &&
+        state.daysSurvived % 3 == 0 &&
+        !state.waitingForChoice &&
+        !state.gameOver) {
+      try {
+        final proposal = await _director.propose(DirectorContext.fromGame(state));
+        if (sequence == _sequence && proposal != null) {
+          final directed = _engine.acceptDirectedEvent(proposal);
+          if (directed.accepted) {
+            directedEventAccepted = true;
+            lastResult = directed;
+            _notify();
+            await _persist();
+          }
+        }
+      } catch (_) {
+        // Model failure must not change or pause the survival loop.
+      }
+    }
+
+    if (sequence == _sequence && (_shouldNarrate(result) || directedEventAccepted)) {
       try {
         final scene = AiScene.fromGame(state);
         final generated = await _narrator.narrate(scene);
         if (sequence == _sequence && generated != null && generated.isNotEmpty) {
           aiText = generated;
+          state.addChat(ChatRole.world, generated, eventId: 'ai_narration');
           _notify();
+          await _persist();
         }
       } catch (_) {
         // Missing or failing models never block saving or gameplay.
@@ -94,7 +124,7 @@ class GameController extends ChangeNotifier {
   Future<void> newGame() async {
     _sequence++;
     final best = state.bestDays;
-    _engine = GameEngine(initialState: GameState(bestDays: best));
+    _engine = GameEngine(initialState: GameState.newRun(bestDays: best));
     lastResult = null;
     aiText = null;
     error = null;

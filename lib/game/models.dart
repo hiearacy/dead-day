@@ -1,4 +1,7 @@
+import 'dart:math';
+import 'chat_message.dart';
 import 'event_record.dart';
+import 'world_profile.dart';
 
 /// Pure Dart game data, independent of Flutter widgets and AI runtimes.
 enum Zone { market, pharmacy, apartments }
@@ -98,6 +101,10 @@ class GameState {
     this.medicine = 1,
     this.weaponLevel = 0,
     this.noise = 0,
+    WorldProfile? world,
+    List<ChatMessage>? messages,
+    this.messageSerial = 0,
+    this.lastDirectedEventDay = -1,
     this.gameOver = false,
     this.npcMet = false,
     this.pendingRecruitment = false,
@@ -105,9 +112,29 @@ class GameState {
     this.companion,
     List<GameEventRecord>? journal,
     this.log = '생존 1일차. 바깥에는 좀비가 가득하다. 오늘 무엇을 할까?',
-  }) : journal = journal ?? <GameEventRecord>[];
+  }) : world = world ?? WorldProfile.seoul,
+       messages = messages ?? <ChatMessage>[],
+       journal = journal ?? <GameEventRecord>[];
 
-  static const int saveVersion = 2;
+  static const int saveVersion = 3;
+  static const int maxChatMessages = 80;
+
+  factory GameState.newRun({Random? random, int bestDays = 0}) {
+    final place = WorldProfile.random(random ?? Random());
+    return GameState(
+      world: place,
+      bestDays: bestDays,
+      food: place.food,
+      water: place.water,
+      log: place.intro,
+      messageSerial: 1,
+      messages: <ChatMessage>[
+        ChatMessage(
+          id: 'm1', day: 1, role: ChatRole.world, text: place.intro,
+        ),
+      ],
+    );
+  }
   static const int maxJournalEntries = 24;
 
   int daysSurvived;
@@ -118,6 +145,10 @@ class GameState {
   int medicine;
   int weaponLevel;
   int noise;
+  final WorldProfile world;
+  final List<ChatMessage> messages;
+  int messageSerial;
+  int lastDirectedEventDay;
   bool gameOver;
   bool npcMet;
   bool pendingRecruitment;
@@ -129,6 +160,17 @@ class GameState {
   int get currentDay => daysSurvived + 1;
   bool get waitingForChoice => encounter != null || pendingRecruitment;
   bool get canStartAction => !gameOver && !waitingForChoice;
+
+  void addChat(ChatRole role, String text, {String? speaker, String? eventId}) {
+    messageSerial++;
+    messages.add(ChatMessage(
+      id: 'm$messageSerial', day: currentDay,
+      role: role, text: text, speaker: speaker, sourceEventId: eventId,
+    ));
+    while (messages.length > maxChatMessages) {
+      messages.removeAt(0);
+    }
+  }
 
   void record(GameEventRecord entry) {
     journal.add(entry);
@@ -147,6 +189,10 @@ class GameState {
         'medicine': medicine,
         'weaponLevel': weaponLevel,
         'noise': noise,
+        'world': world.toJson(),
+        'messages': messages.map((message) => message.toJson()).toList(),
+        'messageSerial': messageSerial,
+        'lastDirectedEventDay': lastDirectedEventDay,
         'gameOver': gameOver,
         'npcMet': npcMet,
         'pendingRecruitment': pendingRecruitment,
@@ -160,12 +206,14 @@ class GameState {
   /// extending the schema; do not silently discard player progress.
   factory GameState.fromJson(Map<String, dynamic> json) {
     final version = (json['saveVersion'] as num?)?.toInt();
-    if (version != 1 && version != saveVersion) {
+    if (version != 1 && version != 2 && version != saveVersion) {
       throw const FormatException('지원하지 않는 저장 버전입니다.');
     }
     final encounterJson = json['encounter'];
     final companionJson = json['companion'];
     final rawJournal = json['journal'];
+    final rawMessages = json['messages'];
+    final rawWorld = json['world'];
     return GameState(
       daysSurvived: (json['daysSurvived'] as num?)?.toInt() ?? 0,
       bestDays: (json['bestDays'] as num?)?.toInt() ?? 0,
@@ -175,6 +223,14 @@ class GameState {
       medicine: (json['medicine'] as num?)?.toInt() ?? 1,
       weaponLevel: (json['weaponLevel'] as num?)?.toInt() ?? 0,
       noise: ((json['noise'] as num?)?.toInt() ?? 0).clamp(0, 100).toInt(),
+      world: WorldProfile.byId(rawWorld is Map ? rawWorld['id'] as String? : null),
+      messageSerial: (json['messageSerial'] as num?)?.toInt() ?? 0,
+      lastDirectedEventDay: (json['lastDirectedEventDay'] as num?)?.toInt() ?? -1,
+      messages: rawMessages is List
+          ? rawMessages.whereType<Map>()
+              .map((value) => ChatMessage.fromJson(Map<String, dynamic>.from(value)))
+              .toList().reversed.take(maxChatMessages).toList().reversed.toList()
+          : <ChatMessage>[],
       gameOver: json['gameOver'] == true,
       npcMet: json['npcMet'] == true,
       pendingRecruitment: json['pendingRecruitment'] == true,

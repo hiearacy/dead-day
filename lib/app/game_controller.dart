@@ -69,7 +69,8 @@ class GameController extends ChangeNotifier {
     _notify();
     await _persist();
 
-    if (_shouldNarrate(result)) {
+    // Skip stale requests: a newer action or a new game may have started.
+    if (sequence == _sequence && _shouldNarrate(result)) {
       try {
         final scene = AiScene.fromGame(state);
         final generated = await _narrator.narrate(scene);

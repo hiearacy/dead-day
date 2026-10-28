@@ -92,7 +92,7 @@ void main() {
       ),
     );
     expect(state.pendingDirectedEvent!.choices.map((c) => c.id),
-        ['refuse']);
+        ['speak', 'refuse']);
   });
 
   test('the same day cannot produce another AI incident after resolution', () {

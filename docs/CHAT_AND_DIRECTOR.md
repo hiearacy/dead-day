@@ -1,4 +1,4 @@
-# Dead Day — chat flow / variable world / event director handoff (v0.3)
+# Dead Day — chat flow / variable world / event director handoff (v0.4)
 
 ## Core experience
 - **A conversation-style survival game**, not a messenger requiring unrestricted natural-language input.
@@ -54,6 +54,14 @@ The director proposes a **premise**, never hardcoded HP changes or unvalidated a
 Mechanical archetypes can be small even while narrative setups are combinatorial/free-form. At present: hidden supplies, tainted water, strange broadcast, stranger at door, companion conflict, unsettling encounter. Expand archetypes only when a new *mechanical* effect is needed, not for each story sentence.
 
 A very rare unsettling-encounter branch receives an additional 0.2% engine gate; the default director only proposes that type rarely. Use adult NPCs for mature themes; sexual orientation is independent from threat, consent and violence. Situations involving coercion can be handled as non-graphic threat/refusal/escape/betrayal events; do not portray sexual violence explicitly. Respect story continuity and player agency.
+
+## Added in v0.4
+- Three scenario bibles determine the stable world rules, mood and story seeds.
+- Player choices in `state.pendingStory` are typed `StoryChoice` objects; use `controller.chooseStory(choice.id)` rather than parsing the UI message.
+- A decision is written to `StoryMemory`, and `StoryThread` later picks up that exact choice to generate a consequential follow-up.
+- `StructuredAiEventDirector` accepts strictly bounded structured JSON from a future on-device model; it has **no runtime attached yet**.
+- UI/UX: render story choices beneath the latest chat bubble and keep its state after returning to the app. The programmer fallback buttons are functional only, not final visual design.
+- The procedural event director is checked on every fourth completed day if no other choice is pending; story beats have priority at eligible three-day intervals.
 
 ## Present limitations and roadmap
 - **Implemented in code**: random world, locale-specific site descriptions, durable chat data, rule-based varied director, validation, saving and fallback.

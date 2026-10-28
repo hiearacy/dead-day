@@ -38,7 +38,13 @@ class ProceduralEventDirector implements EventDirector {
     if (_random.nextInt(300) == 0) {
       types.add(DirectedEventType.unsettlingEncounter);
     }
-    final type = types[_random.nextInt(types.length)];
+    // Prefer a different kind of incident from the last few events.
+    // This improves replay variety even when the Gemini quota is exhausted.
+    final fresh = types.where((type) => !context.recentEvents.any(
+      (eventId) => eventId.startsWith('director_${type.name}_'),
+    )).toList(growable: false);
+    final pool = fresh.isEmpty ? types : fresh;
+    final type = pool[_random.nextInt(pool.length)];
     final omens = _omens[_random.nextInt(_omens.length)];
     final object = _objects[_random.nextInt(_objects.length)];
     final environment = context.locationLabel;

@@ -101,7 +101,8 @@ NPC: ${npcName ?? '없음'} / 신뢰: ${npcTrust ?? '없음'}
 ''';
 }
 
-/// Offline inference is an optional future adapter. No network/API required.
+/// Event generation can run through an optional Gemini API backend.
+/// The procedural fallback requires no network.
 abstract class EventDirector {
   Future<EventProposal?> propose(DirectorContext context);
 }

@@ -82,9 +82,9 @@ On eligible story days:
 3. Worker adds server-owned constraints and calls Gemini generateContent,
    requesting a JSON object (max 128 output tokens by default).
 4. `StructuredAiEventDirector` parses and checks the proposed event.
-5. `GameEngine` validates world/NPC, checks rarity and applies fixed rule
-   effects; the AI never changes stats itself.
-6. If network fails, Gemini returns 429, response format breaks or config
+5. `GameEngine` validates world/NPC and rarity, then saves a pending choice event. **No stats change before the player responds.**
+6. `GameAction.chooseDirectedEvent` validates the choice and applies fixed effects. The choice is written to causal memory; the AI never changes stats itself.
+7. If network fails, Gemini returns 429, response format breaks or config
    is absent, fall back to deterministic/procedural events. Nothing pauses
    the core survival game.
 

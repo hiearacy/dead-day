@@ -48,7 +48,7 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 - A stable `ScenarioDefinition` selects the world and supplies world rules, tone, premise and story seeds.
 - Typed `StoryBeat` with two or more `StoryChoice` alternatives pauses further daily actions until the player decides.
 - `StoryMemory` records important choice outcomes and `StoryThread` links follow-ups to earlier choices. Initial radio/visitor arcs contain two beats each.
-- `StructuredAiEventDirector` offers strict JSON-only adaptation for future on-device inference; model runtime and thermal benchmarks remain future work.
+- `StructuredAiEventDirector` supports constrained JSON from the Gemini API proxy. Cloud API quotas, privacy, network latency and abuse protections replace local-model thermal benchmarks as the primary risks.
 - Saved games migrate v1/v2/v3 -> v4. Existing UI is only a programmer prototype; design team owns visuals.
 - See `docs/SCENARIO_STORY_V04.md` for game flow, testing and handoff.
 

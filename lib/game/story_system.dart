@@ -157,6 +157,11 @@ class StorySystem {
     }
   }
 
+  bool canChoose(GameState state, StoryChoice choice) =>
+      state.food + choice.foodDelta >= 0 &&
+      state.water + choice.waterDelta >= 0 &&
+      state.medicine + choice.medicineDelta >= 0;
+
   /// Returns null if this choice is invalid. Invalid choices never mutate.
   StoryMemory? resolve(GameState state, String choiceId) {
     final pending = state.pendingStory;
@@ -165,7 +170,7 @@ class StorySystem {
     for (final choice in pending.choices) {
       if (choice.id == choiceId) selected = choice;
     }
-    if (selected == null) return null;
+    if (selected == null || !canChoose(state, selected)) return null;
 
     final thread = state.storyThreads.firstWhere(
       (thread) => thread.id == pending.threadId,

@@ -64,6 +64,10 @@ class GameController extends ChangeNotifier {
     await dispatch(GameAction.recruit(accept));
   }
 
+  Future<void> chooseStory(String choiceId) async {
+    await dispatch(GameAction.chooseStory(choiceId));
+  }
+
   /// This one API can later be used by UI, scripts and validated NPC agents.
   Future<GameResult> dispatch(GameAction action) async {
     final result = _engine.execute(action);
@@ -80,7 +84,7 @@ class GameController extends ChangeNotifier {
     var directedEventAccepted = false;
     if (sequence == _sequence &&
         result.dayAfter > result.dayBefore &&
-        state.daysSurvived % 3 == 0 &&
+        state.daysSurvived % 4 == 0 &&
         !state.waitingForChoice &&
         !state.gameOver) {
       try {
@@ -119,13 +123,15 @@ class GameController extends ChangeNotifier {
   bool _shouldNarrate(GameResult result) => result.events.any(
         (event) => event.kind == EventKind.combat ||
             event.kind == EventKind.companion ||
+            event.id.startsWith('story_') ||
             event.id == 'distant_horde',
       );
 
-  Future<void> newGame() async {
+  Future<void> newGame({String scenarioId = 'open_survival'}) async {
     _sequence++;
     final best = state.bestDays;
-    _engine = GameEngine(initialState: GameState.newRun(bestDays: best));
+    _engine = GameEngine(
+        initialState: GameState.newRun(bestDays: best, scenarioId: scenarioId));
     lastResult = null;
     aiText = null;
     error = null;

@@ -13,12 +13,20 @@
 
 ## Run on Android, iOS or the Web
 1. Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) and run `flutter doctor`.
-2. Clone this repository and run in its root directory:
-
+2. Clone this repository. On **Windows / Linux**, generate Android and Web runners:
+   
+   ```bash
+   flutter create --project-name dead_day --platforms=android,web .
+   flutter pub get
+   flutter analyze
+   flutter test
+   ```
+   
+   On **macOS**, generate Android, iOS and Web runners instead:
+   
    ```bash
    flutter create --project-name dead_day --platforms=android,ios,web .
    flutter pub get
-   flutter analyze
    flutter test
    ```
 

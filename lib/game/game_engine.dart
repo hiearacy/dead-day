@@ -74,12 +74,11 @@ class GameEngine {
   }
 
   // Compatibility with the v0.1 controller; new code can use execute().
-  void explore(Zone zone) => execute(GameAction.explore(zone));
-  void resolveEncounter(EncounterAction action) =>
-      execute(GameAction.resolve(action));
-  void rest() => execute(const GameAction.rest());
-  void useMedicine() => execute(const GameAction.useMedicine());
-  void decideRecruitment(bool accept) => execute(GameAction.recruit(accept));
+  void explore(Zone zone) { execute(GameAction.explore(zone)); }
+  void resolveEncounter(EncounterAction action) { execute(GameAction.resolve(action)); }
+  void rest() { execute(const GameAction.rest()); }
+  void useMedicine() { execute(const GameAction.useMedicine()); }
+  void decideRecruitment(bool accept) { execute(GameAction.recruit(accept)); }
 
   GameResult _rejected(String code, int dayBefore) => GameResult(
         accepted: false,

@@ -7,6 +7,16 @@ on:
     branches: [main]
 
 jobs:
+  gemini-proxy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test Gemini proxy without real API key
+        run: node --test backend/test/*.test.mjs
+
   android-and-web:
     runs-on: ubuntu-latest
     steps:

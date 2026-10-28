@@ -37,6 +37,10 @@ class DirectorContext {
     required this.health,
     required this.noise,
     required this.recentEvents,
+    required this.scenarioTitle,
+    required this.scenarioPremise,
+    required this.scenarioRules,
+    required this.storyMemories,
     this.npcName,
     this.npcTrust,
   });
@@ -52,9 +56,20 @@ class DirectorContext {
   final String? npcName;
   final int? npcTrust;
   final List<String> recentEvents;
+  final String scenarioTitle;
+  final String scenarioPremise;
+  final List<String> scenarioRules;
+  final List<String> storyMemories;
 
   factory DirectorContext.fromGame(GameState state) => DirectorContext(
         day: state.currentDay,
+        scenarioTitle: state.scenario.title,
+        scenarioPremise: state.scenario.premise,
+        scenarioRules: state.scenario.rules.take(3).toList(growable: false),
+        storyMemories: state.storyMemories.reversed.take(4)
+            .map((memory) => memory.summary.length > 95
+                ? memory.summary.substring(0, 95) : memory.summary)
+            .toList(growable: false),
         locationId: state.world.id,
         locationLabel: state.world.label,
         biome: state.world.biome.name,
@@ -72,6 +87,9 @@ class DirectorContext {
 
   String get compactPrompt => '''
 역할: 오프라인 좀비 생존 게임의 이벤트 디렉터.
+시나리오: $scenarioTitle - $scenarioPremise
+절대 변경할 수 없는 설정: ${scenarioRules.join(' / ')}
+이전 선택의 중요 결과: ${storyMemories.join(' / ')}
 다음 월드 상태를 고려해 게임 사건의 '시작 상황' 하나만 제안한다.
 지역: $locationLabel / 환경: $biome / 날짜: $day
 체력: $health / 식량: $food / 물: $water / 소음: $noise

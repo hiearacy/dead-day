@@ -2,6 +2,8 @@ import 'dart:math';
 import 'chat_message.dart';
 import 'event_record.dart';
 import 'world_profile.dart';
+import 'scenario_definition.dart';
+import 'story_memory.dart';
 
 /// Pure Dart game data, independent of Flutter widgets and AI runtimes.
 enum Zone { market, pharmacy, apartments }
@@ -102,6 +104,10 @@ class GameState {
     this.weaponLevel = 0,
     this.noise = 0,
     WorldProfile? world,
+    ScenarioDefinition? scenario,
+    List<StoryMemory>? storyMemories,
+    List<StoryThread>? storyThreads,
+    this.pendingStory,
     List<ChatMessage>? messages,
     this.messageSerial = 0,
     this.lastDirectedEventDay = -1,
@@ -113,24 +119,33 @@ class GameState {
     List<GameEventRecord>? journal,
     this.log = '생존 1일차. 바깥에는 좀비가 가득하다. 오늘 무엇을 할까?',
   }) : world = world ?? WorldProfile.seoul,
+       scenario = scenario ?? ScenarioCatalog.openSurvival,
+       storyMemories = storyMemories ?? <StoryMemory>[],
+       storyThreads = storyThreads ?? <StoryThread>[],
        messages = messages ?? <ChatMessage>[],
        journal = journal ?? <GameEventRecord>[];
 
-  static const int saveVersion = 3;
+  static const int saveVersion = 4;
+  static const int maxStoryMemories = 12;
   static const int maxChatMessages = 80;
 
-  factory GameState.newRun({Random? random, int bestDays = 0}) {
-    final place = WorldProfile.random(random ?? Random());
+  factory GameState.newRun({Random? random, int bestDays = 0,
+      String scenarioId = 'open_survival'}) {
+    final rng = random ?? Random();
+    final scenario = ScenarioCatalog.byId(scenarioId);
+    final place = scenario.pickWorld(rng);
     return GameState(
       world: place,
+      scenario: scenario,
       bestDays: bestDays,
       food: place.food,
       water: place.water,
-      log: place.intro,
+      log: '${scenario.premise}\n${place.intro}',
       messageSerial: 1,
       messages: <ChatMessage>[
         ChatMessage(
-          id: 'm1', day: 1, role: ChatRole.world, text: place.intro,
+          id: 'm1', day: 1, role: ChatRole.world,
+          text: '${scenario.premise}\n${place.intro}',
         ),
       ],
     );
@@ -146,6 +161,10 @@ class GameState {
   int weaponLevel;
   int noise;
   final WorldProfile world;
+  final ScenarioDefinition scenario;
+  final List<StoryMemory> storyMemories;
+  final List<StoryThread> storyThreads;
+  StoryBeat? pendingStory;
   final List<ChatMessage> messages;
   int messageSerial;
   int lastDirectedEventDay;
@@ -158,7 +177,8 @@ class GameState {
   String log;
 
   int get currentDay => daysSurvived + 1;
-  bool get waitingForChoice => encounter != null || pendingRecruitment;
+  bool get waitingForChoice =>
+      encounter != null || pendingRecruitment || pendingStory != null;
   bool get canStartAction => !gameOver && !waitingForChoice;
 
   void addChat(ChatRole role, String text, {String? speaker, String? eventId}) {
@@ -169,6 +189,13 @@ class GameState {
     ));
     while (messages.length > maxChatMessages) {
       messages.removeAt(0);
+    }
+  }
+
+  void rememberStory(StoryMemory memory) {
+    storyMemories.add(memory);
+    while (storyMemories.length > maxStoryMemories) {
+      storyMemories.removeAt(0);
     }
   }
 
@@ -190,6 +217,10 @@ class GameState {
         'weaponLevel': weaponLevel,
         'noise': noise,
         'world': world.toJson(),
+        'scenarioId': scenario.id,
+        'storyMemories': storyMemories.map((m) => m.toJson()).toList(),
+        'storyThreads': storyThreads.map((t) => t.toJson()).toList(),
+        'pendingStory': pendingStory?.toJson(),
         'messages': messages.map((message) => message.toJson()).toList(),
         'messageSerial': messageSerial,
         'lastDirectedEventDay': lastDirectedEventDay,
@@ -206,7 +237,7 @@ class GameState {
   /// extending the schema; do not silently discard player progress.
   factory GameState.fromJson(Map<String, dynamic> json) {
     final version = (json['saveVersion'] as num?)?.toInt();
-    if (version != 1 && version != 2 && version != saveVersion) {
+    if (version != 1 && version != 2 && version != 3 && version != saveVersion) {
       throw const FormatException('지원하지 않는 저장 버전입니다.');
     }
     final encounterJson = json['encounter'];
@@ -214,6 +245,9 @@ class GameState {
     final rawJournal = json['journal'];
     final rawMessages = json['messages'];
     final rawWorld = json['world'];
+    final rawMemories = json['storyMemories'];
+    final rawThreads = json['storyThreads'];
+    final rawPendingStory = json['pendingStory'];
     return GameState(
       daysSurvived: (json['daysSurvived'] as num?)?.toInt() ?? 0,
       bestDays: (json['bestDays'] as num?)?.toInt() ?? 0,
@@ -224,6 +258,20 @@ class GameState {
       weaponLevel: (json['weaponLevel'] as num?)?.toInt() ?? 0,
       noise: ((json['noise'] as num?)?.toInt() ?? 0).clamp(0, 100).toInt(),
       world: WorldProfile.byId(rawWorld is Map ? rawWorld['id'] as String? : null),
+      scenario: ScenarioCatalog.byId(json['scenarioId'] as String?),
+      storyMemories: rawMemories is List
+          ? rawMemories.whereType<Map>()
+              .map((value) => StoryMemory.fromJson(Map<String, dynamic>.from(value)))
+              .toList().reversed.take(maxStoryMemories).toList().reversed.toList()
+          : <StoryMemory>[],
+      storyThreads: rawThreads is List
+          ? rawThreads.whereType<Map>()
+              .map((value) => StoryThread.fromJson(Map<String, dynamic>.from(value)))
+              .toList()
+          : <StoryThread>[],
+      pendingStory: rawPendingStory is Map
+          ? StoryBeat.fromJson(Map<String, dynamic>.from(rawPendingStory))
+          : null,
       messageSerial: (json['messageSerial'] as num?)?.toInt() ?? 0,
       lastDirectedEventDay: (json['lastDirectedEventDay'] as num?)?.toInt() ?? -1,
       messages: rawMessages is List

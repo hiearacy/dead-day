@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'event_director.dart';
 
-/// Cross-platform port for a *future* on-device model runtime.
-/// Android/iOS implementations can use any supported inference library.
-abstract class LocalTextGenerator {
+/// Model-provider-agnostic generator; Gemini proxy supplies the text remotely.
+abstract class TextGenerator {
   Future<String> generate({
     required String prompt,
     required int maxOutputTokens,
@@ -16,7 +15,7 @@ abstract class LocalTextGenerator {
 class StructuredAiEventDirector implements EventDirector {
   const StructuredAiEventDirector(this.generator);
 
-  final LocalTextGenerator generator;
+  final TextGenerator generator;
 
   @override
   Future<EventProposal?> propose(DirectorContext context) async {
@@ -56,7 +55,7 @@ class StructuredAiEventDirector implements EventDirector {
   }
 }
 
-/// Use as the default fallback wrapper once an actual on-device model exists.
+/// A failed, limited or unavailable API falls back to procedural events.
 class FallbackEventDirector implements EventDirector {
   const FallbackEventDirector(this.primary, this.fallback);
 

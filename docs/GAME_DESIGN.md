@@ -1,4 +1,4 @@
-# Dead Day — gameplay contract (v0.3)
+# Dead Day — gameplay contract (v0.4)
 
 ## Goal and boundaries
 Survive as many full days as possible during a zombie apocalypse. This is an offline-first **cross-platform text game**, not a world simulator. The playable v0.2 prototype has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
@@ -43,6 +43,14 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 - `EventDirector` is a replaceable optional on-device AI provider. No model is currently bundled. Model failure must not prevent gameplay.
 - Full UI animation, continuous NPC conversation, and a broad player-choice story event graph remain future work.
 - See `docs/CHAT_AND_DIRECTOR.md` for visual design handoff and backend data contracts.
+
+## New v0.4 authored scenario + story system
+- A stable `ScenarioDefinition` selects the world and supplies world rules, tone, premise and story seeds.
+- Typed `StoryBeat` with two or more `StoryChoice` alternatives pauses further daily actions until the player decides.
+- `StoryMemory` records important choice outcomes and `StoryThread` links follow-ups to earlier choices. Initial radio/visitor arcs contain two beats each.
+- `StructuredAiEventDirector` offers strict JSON-only adaptation for future on-device inference; model runtime and thermal benchmarks remain future work.
+- Saved games migrate v1/v2/v3 -> v4. Existing UI is only a programmer prototype; design team owns visuals.
+- See `docs/SCENARIO_STORY_V04.md` for game flow, testing and handoff.
 
 ## Companion prototype
 Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefits (rest recovery +5) and costs (food +1 and water +1 daily). Her trust responds to rationing and can trigger departure. Affection is stored but romance is **not yet implemented**.

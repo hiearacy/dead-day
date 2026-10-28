@@ -7,6 +7,7 @@ import 'event_system.dart';
 import 'game_action.dart';
 import 'models.dart';
 import 'npc_system.dart';
+import 'story_memory.dart';
 import 'story_system.dart';
 
 /// The authoritative rules engine. No Flutter or model runtime imports here.
@@ -94,6 +95,20 @@ class GameEngine {
         state.addChat(ChatRole.player, choices.first.label);
         _resolveStory(action.choiceId!);
         break;
+      case GameActionType.chooseDirectedEvent:
+        final pending = state.pendingDirectedEvent;
+        if (pending == null || action.choiceId == null) {
+          return _rejected('no_directed_event', before);
+        }
+        final selected = pending.choices.where(
+          (choice) => choice.id == action.choiceId,
+        );
+        if (selected.isEmpty) {
+          return _rejected('invalid_directed_choice', before);
+        }
+        state.addChat(ChatRole.player, selected.first.label);
+        _resolveDirectedEvent(action.choiceId!);
+        break;
     }
 
     return GameResult(
@@ -122,11 +137,11 @@ class GameEngine {
     if (!_directedEvents.passesRarity(proposal, _random)) {
       return _rejected('rarity_roll_failed', before);
     }
-    final effect = _directedEvents.apply(state, proposal);
+    final pending = _directedEvents.offer(state, proposal);
+    state.pendingDirectedEvent = pending;
     state.lastDirectedEventDay = state.daysSurvived;
-    final text = '${proposal.premise.trim()}\n$effect';
-    state.log = text;
-    _record('director_${proposal.type.name}', EventKind.hazard, text);
+    state.log = pending.premise;
+    _record(pending.id, EventKind.hazard, pending.premise);
     return GameResult(
       accepted: true,
       code: 'event_accepted',
@@ -134,6 +149,24 @@ class GameEngine {
       dayAfter: state.daysSurvived,
       events: List<GameEventRecord>.unmodifiable(_emitted),
     );
+  }
+
+  void _resolveDirectedEvent(String choiceId) {
+    final pending = state.pendingDirectedEvent!;
+    final outcome = _directedEvents.resolve(state, pending, choiceId);
+    state.pendingDirectedEvent = null; // Decision may not be replayed.
+    final text = outcome.text;
+    state.log = text;
+    _record('director_choice_${pending.typeName}_$choiceId',
+        EventKind.hazard, text);
+    state.rememberStory(StoryMemory(
+      key: '${pending.id}_$choiceId',
+      day: state.currentDay,
+      summary: '${pending.premise} 선택: $choiceId. $text',
+      threadId: pending.id,
+      tags: ['director', pending.typeName, choiceId],
+    ));
+    if (state.health <= 0) _die(text);
   }
 
   void _resolveStory(String choiceId) {
@@ -371,6 +404,7 @@ class GameEngine {
     state.gameOver = true;
     state.encounter = null;
     state.pendingRecruitment = false;
+    state.pendingDirectedEvent = null;
     state.bestDays = max(state.bestDays, state.daysSurvived);
     state.log = '$story\n생존 실패. 최종 기록: ${state.daysSurvived}일.';
     _record('player_died', EventKind.system, state.log);

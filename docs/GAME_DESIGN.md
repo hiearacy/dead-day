@@ -55,7 +55,7 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 ## Companion prototype
 Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefits (rest recovery +5) and costs (food +1 and water +1 daily). Her trust responds to rationing and can trigger departure. Affection is stored but romance is **not yet implemented**.
 
-## System / Local AI boundary
+## System / Gemini API boundary
 - **GameEngine** is authoritative for probabilities, inventory, death, daily consumption and NPC mechanical outcomes.
 - **GameState** is serialized and saved locally with a schema version. An unresolved encounter can be saved and resumed.
 - **AiScene** is a deliberately small read-only projection of the already resolved event.

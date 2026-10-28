@@ -13,6 +13,9 @@ class AiScene {
     required this.outcome,
     required this.recentEvents,
     required this.npcMemories,
+    required this.scenarioTitle,
+    required this.scenarioRules,
+    required this.causalMemories,
     this.npcName,
     this.npcTrait,
     this.npcTrust,
@@ -26,9 +29,17 @@ class AiScene {
   final int? npcTrust;
   final List<String> recentEvents;
   final List<String> npcMemories;
+  final String scenarioTitle;
+  final List<String> scenarioRules;
+  final List<String> causalMemories;
 
   factory AiScene.fromGame(GameState state) => AiScene(
         day: state.currentDay,
+        scenarioTitle: state.scenario.title,
+        scenarioRules: state.scenario.rules.take(3).toList(growable: false),
+        causalMemories: state.storyMemories.reversed.take(4)
+            .map((memory) => _truncate(memory.summary, 100))
+            .toList(growable: false),
         place: state.encounter != null
             ? '${state.world.label} · ${state.world.siteFor(state.encounter!.zone.name)}'
             : '${state.world.label} · ${state.world.shelter}',
@@ -53,6 +64,9 @@ class AiScene {
 
   String get compactPrompt => '''
 너는 모바일 좀비 생존 게임의 한국어 내레이터다.
+시나리오: $scenarioTitle
+고정 규칙: ${scenarioRules.join(' / ')}
+이전 선택: ${causalMemories.join(' / ')}
 확정된 사건의 사실을 바꾸지 마라.
 사망, 자원, 전투, NPC 관계 수치 등 게임 결과를 만들거나 수정하지 마라.
 짧은 한국어 두 문장 이내로 인물의 감정과 상황만 묘사하라.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app/game_controller.dart';
+import 'ai/ai_configuration.dart';
 import 'ui/game_screen.dart';
 
 void main() {
@@ -15,7 +16,9 @@ class DeadDayApp extends StatefulWidget {
 }
 
 class _DeadDayAppState extends State<DeadDayApp> {
-  final GameController _controller = GameController();
+  final GameController _controller = GameController(
+    director: AiConfiguration.createDirector(),
+  );
 
   @override
   void initState() {

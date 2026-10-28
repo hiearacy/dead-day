@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dead_day/ai/event_director.dart';
 import 'package:dead_day/ai/procedural_director.dart';
 import 'package:dead_day/game/game_engine.dart';
+import 'package:dead_day/game/game_action.dart';
 import 'package:dead_day/game/models.dart';
 import 'package:dead_day/game/world_profile.dart';
 
@@ -48,7 +49,12 @@ void main() {
     expect(state.toJson().toString(), before);
     final result = GameEngine(initialState: state).acceptDirectedEvent(proposal);
     expect(result.accepted, isTrue);
-    expect(state.food, 6); // Only the engine awards one ration.
+    expect(state.food, 5); // No result until the player's choice.
+    expect(state.pendingDirectedEvent?.typeName, 'hiddenSupplies');
+    final chosen = GameEngine(initialState: state).execute(
+      GameAction.chooseDirectedEvent('inspect'));
+    expect(chosen.accepted, isTrue);
+    expect(state.food, 6);
     expect(state.daysSurvived, 4); // Side event does not advance day.
   });
 }

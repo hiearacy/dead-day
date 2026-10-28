@@ -1,7 +1,7 @@
-# Dead Day — gameplay contract (v0.1)
+# Dead Day — gameplay contract (v0.2)
 
 ## Goal and boundaries
-Survive as many full days as possible during a zombie apocalypse. This is an offline-first **cross-platform text game**, not a world simulator. The playable v0.1 has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
+Survive as many full days as possible during a zombie apocalypse. This is an offline-first **cross-platform text game**, not a world simulator. The playable v0.2 prototype has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
 
 ## Cross-platform contract (Android / iOS / Web)
 - Keep ALL gameplay, RNG, character states and event results in plain Dart code independent of platform plugins.
@@ -28,6 +28,14 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 | Pharmacy | 55% | Medicine |
 | Apartments | 70% | Food + water OR weapon level |
 
+## New v0.2 systems
+- Every legal player command passes through `GameEngine.execute(GameAction)` and returns an immutable `GameResult` with machine-readable event records; rejected inputs do not advance days.
+- GameState saves a bounded journal (latest 24 events), noise (0-100), and companion memories (latest six strings). Previous v1 save files migrate to v2.
+- Combat and failed stealth add noise, which slightly increases future zombie encounter chances; noise fades after each completed day. Later days also raise exploration danger within a cap.
+- A small weighted nighttime event catalogue can grant or remove supplies or alter noise. Events have explicit conditions and are resolved in ordinary Dart.
+- Companion trust reacts to ration shortfall and long-term scarcity may trigger departure. Current disposition and memory fields prepare for future richer relationships, but autonomous NPC planning and romance are NOT implemented yet.
+- AI narration is requested only for notable combat, companion or horde events. Model use remains disabled until validated on Android/iOS.
+
 ## Companion prototype
 Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefits (rest recovery +5) and costs (food +1 and water +1 daily). Her trust responds to rationing and can trigger departure. Affection is stored but romance is **not yet implemented**.
 
@@ -39,10 +47,10 @@ Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefi
 - Model failures, overheating concerns, missing RAM, or unsupported devices must never prevent gameplay. Local AI must be opt-in and disabled by default; inference requires separate on-device benchmarking.
 
 ## Next systems (outside v0.1)
-1. Structured action/result data and event templates rather than only strings.
-2. NPC personality / motivation / memory, then constrained autonomous actions.
-3. Conditional betrayal, trust, affinity and relationship storylets.
-4. Actual low-end-device benchmark, then local AI model selection and safe fallback.
+1. More structured exploration/event choices and condition-based storylets.
+2. Real NPC personality differences, needs, autonomous intentions and romance (currently only a single companion prototype).
+3. Safe NPC intent validator before any AI-proposed action is allowed.
+4. Low-end-device benchmark, then optional local AI model selection and fallback.
 5. More varied loot, injuries, event chains, difficulty balancing.
 
 ## Seven-week plan

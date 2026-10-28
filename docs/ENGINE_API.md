@@ -66,7 +66,7 @@ Implementation notes for the designer's team (not implemented by the engine):
 - Avoid per-character sound or haptic by default. Dispose animation timers when navigating.
 - Keep the script separate from the game rules; animation finishing should not increment survival days.
 
-## On-device AI boundary
+## Cloud Gemini API boundary (v0.5)
 - `AiScene.fromGame(state)` provides capped outcome, three recent event excerpts, three NPC memory excerpts and small stats.
 - `NoAiNarrator` remains the fallback narration adapter on Android, iOS and Web. **The event director can optionally use Gemini through a key-protected backend proxy**; it does not run models on the device.
 - The Gemini API may propose bounded narrative events, but never an inventory change, death result, arbitrary game action or trust update. The engine validates every proposal; model failures fall back to scripted events.

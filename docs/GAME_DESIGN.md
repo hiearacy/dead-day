@@ -1,4 +1,4 @@
-# Dead Day — gameplay contract (v0.2)
+# Dead Day — gameplay contract (v0.3)
 
 ## Goal and boundaries
 Survive as many full days as possible during a zombie apocalypse. This is an offline-first **cross-platform text game**, not a world simulator. The playable v0.2 prototype has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
@@ -35,6 +35,14 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 - A small weighted nighttime event catalogue can grant or remove supplies or alter noise. Events have explicit conditions and are resolved in ordinary Dart.
 - Companion trust reacts to ration shortfall and long-term scarcity may trigger departure. Current disposition and memory fields prepare for future richer relationships, but autonomous NPC planning and romance are NOT implemented yet.
 - AI narration is requested only for notable combat, companion or horde events. Model use remains disabled until validated on Android/iOS.
+
+## New v0.3 world, chat and director foundations
+- Fresh runs choose one of four locations (Seoul, Busan, Gangwon, Jeju), with environment-specific supply levels, combat danger offset and named exploration sites. The region is persisted for the whole run.
+- All legal actions create saved chat transcript messages separately from the event journal. Roles include player/world/NPC/system, allowing a messaging-platform UI without interpreting Korean strings.
+- The default lightweight `ProceduralEventDirector` proposes a situation after every third completed day when no decision is pending, and the `DirectedEventSystem` checks setting, NPC validity, duplicates, premise length and a separate very-rare event gate. Only the engine changes resources or trust.
+- `EventDirector` is a replaceable optional on-device AI provider. No model is currently bundled. Model failure must not prevent gameplay.
+- Full UI animation, continuous NPC conversation, and a broad player-choice story event graph remain future work.
+- See `docs/CHAT_AND_DIRECTOR.md` for visual design handoff and backend data contracts.
 
 ## Companion prototype
 Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefits (rest recovery +5) and costs (food +1 and water +1 daily). Her trust responds to rationing and can trigger departure. Affection is stored but romance is **not yet implemented**.

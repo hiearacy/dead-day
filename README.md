@@ -2,14 +2,17 @@
 
 **Dead Day** is an offline-first, cross-platform zombie survival text game made with **Flutter + Dart**. The goal is to survive as many days as possible. A single game engine and save format are shared between **Android, iOS and Web**.
 
-## v0.1: playable core (no LLM required)
+## v0.2: gameplay systems (no LLM required)
 - Shelter: rest or use medicine.
 - Three exploration zones: market, pharmacy, apartments.
 - Zombie encounters: fight, sneak or flee; outcomes are computed by Dart.
 - Daily food and water use, injury, death and best survival record.
 - One recruitable companion who helps recovery, consumes rations and can leave.
 - Automatic local saves via `shared_preferences` (platform-specific backing storage).
-- `AiNarrator` interface is present; **no local model is bundled yet**.
+- Typed `GameAction` -> `GameEngine.execute` -> `GameResult` with structured event records.
+- Nighttime event catalogue, noise-driven risk and capped NPC memories.
+- Version 1 saves migrate to version 2 (event journal + noise); all platforms retain the same JSON format.
+- Optional `AiNarrator` interface has a small context window and is called only for notable events; **no local model is bundled yet**.
 
 ## Run on Android, iOS or the Web
 1. Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) and run `flutter doctor`.
@@ -53,6 +56,10 @@ lib/
   app/game_controller.dart     # state and persistence coordinator
   game/models.dart             # serializable cross-platform state
   game/game_engine.dart        # source of truth for game mechanics
+  game/game_action.dart        # typed commands/results
+  game/event_record.dart       # structured event journal
+  game/event_system.dart       # nighttime event catalogue
+  game/npc_system.dart         # daily trust / departure rules
   data/save_service.dart       # shared_preferences storage
   ai/narrator.dart             # optional narrative AI boundary
 test/game_engine_test.dart
@@ -64,4 +71,4 @@ Game rules never depend on AI. **Mobile local AI** is a future optional adapter,
 ## Cross-platform verification
 GitHub Actions on the `main` branch regenerates Android/Web runners and attempts `flutter analyze`, `flutter test`, `flutter build web --release`, and `flutter build apk --debug`. iOS compilation additionally needs a macOS/Xcode environment.
 
-**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md).
+**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md).

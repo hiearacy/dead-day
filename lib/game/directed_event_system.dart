@@ -84,6 +84,7 @@ class DirectedEventSystem {
         return [
           if (state.food > 0)
             const DirectedChoice(id: 'share', label: '식량 한 개를 건네준다'),
+          const DirectedChoice(id: 'speak', label: '문 너머로 사정을 물어본다'),
           const DirectedChoice(id: 'refuse', label: '문을 잠그고 돌려보낸다'),
         ];
       case DirectedEventType.companionConflict:
@@ -142,6 +143,12 @@ class DirectedEventSystem {
           state.food--;
           return const DirectedResolution(
             '식량을 건넸다. 방문자는 감사하다고 말하고 떠났다. 식량 -1.',
+          );
+        }
+        if (choiceId == 'speak') {
+          state.noise = min(100, state.noise + 2);
+          return const DirectedResolution(
+            '문 너머로 대화를 나눴다. 방문자의 행선지를 기록했다. 소음 +2.',
           );
         }
         state.noise = min(100, state.noise + 4);

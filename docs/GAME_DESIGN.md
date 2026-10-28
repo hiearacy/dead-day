@@ -59,7 +59,7 @@ Seyoon is a single proof-of-concept NPC, not a final cast. Recruiting has benefi
 - **GameEngine** is authoritative for probabilities, inventory, death, daily consumption and NPC mechanical outcomes.
 - **GameState** is serialized and saved locally with a schema version. An unresolved encounter can be saved and resumed.
 - **AiScene** is a deliberately small read-only projection of the already resolved event.
-- **AiNarrator** may later run an on-device Korean language model but can only return 1–2 flavor sentences. No model is shipped in v0.1.
+- **AiNarrator** remains an optional narrative-text interface. The v0.5 Gemini API integration currently generates event premises, not unrestricted NPC dialogue; the game never requires AI to run.
 - Model failures, overheating concerns, missing RAM, or unsupported devices must never prevent gameplay. Local AI must be opt-in and disabled by default; inference requires separate on-device benchmarking.
 
 ## Next systems (outside v0.1)

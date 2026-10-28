@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../ai/narrator.dart';
 import '../ai/event_director.dart';
+import '../ai/procedural_director.dart';
 import '../game/chat_message.dart';
 import '../data/save_service.dart';
 import '../game/event_record.dart';
@@ -14,7 +15,7 @@ class GameController extends ChangeNotifier {
   GameController({SaveService? saves, AiNarrator? narrator, EventDirector? director})
       : _saves = saves ?? SaveService(),
         _narrator = narrator ?? const NoAiNarrator(),
-        _director = director ?? const NoEventDirector();
+        _director = director ?? ProceduralEventDirector();
 
   final SaveService _saves;
   final AiNarrator _narrator;
@@ -75,7 +76,7 @@ class GameController extends ChangeNotifier {
 
     // Skip stale requests: a newer action or a new game may have started.
     // The director can propose a rare situation after a fully completed day.
-    // In v0.3 it is disabled by default; all normal events remain Dart rules.
+    // A small procedural fallback runs by default; a local model can replace it.
     var directedEventAccepted = false;
     if (sequence == _sequence &&
         result.dayAfter > result.dayBefore &&

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'chat_message.dart';
+import 'directed_event_choice.dart';
 import 'event_record.dart';
 import 'world_profile.dart';
 import 'scenario_definition.dart';
@@ -108,6 +109,7 @@ class GameState {
     List<StoryMemory>? storyMemories,
     List<StoryThread>? storyThreads,
     this.pendingStory,
+    this.pendingDirectedEvent,
     List<ChatMessage>? messages,
     this.messageSerial = 0,
     this.lastDirectedEventDay = -1,
@@ -125,7 +127,7 @@ class GameState {
        messages = messages ?? <ChatMessage>[],
        journal = journal ?? <GameEventRecord>[];
 
-  static const int saveVersion = 4;
+  static const int saveVersion = 5;
   static const int maxStoryMemories = 12;
   static const int maxChatMessages = 80;
 
@@ -165,6 +167,7 @@ class GameState {
   final List<StoryMemory> storyMemories;
   final List<StoryThread> storyThreads;
   StoryBeat? pendingStory;
+  PendingDirectedEvent? pendingDirectedEvent;
   final List<ChatMessage> messages;
   int messageSerial;
   int lastDirectedEventDay;
@@ -178,7 +181,8 @@ class GameState {
 
   int get currentDay => daysSurvived + 1;
   bool get waitingForChoice =>
-      encounter != null || pendingRecruitment || pendingStory != null;
+      encounter != null || pendingRecruitment || pendingStory != null ||
+      pendingDirectedEvent != null;
   bool get canStartAction => !gameOver && !waitingForChoice;
 
   void addChat(ChatRole role, String text, {String? speaker, String? eventId}) {
@@ -221,6 +225,7 @@ class GameState {
         'storyMemories': storyMemories.map((m) => m.toJson()).toList(),
         'storyThreads': storyThreads.map((t) => t.toJson()).toList(),
         'pendingStory': pendingStory?.toJson(),
+        'pendingDirectedEvent': pendingDirectedEvent?.toJson(),
         'messages': messages.map((message) => message.toJson()).toList(),
         'messageSerial': messageSerial,
         'lastDirectedEventDay': lastDirectedEventDay,
@@ -237,7 +242,8 @@ class GameState {
   /// extending the schema; do not silently discard player progress.
   factory GameState.fromJson(Map<String, dynamic> json) {
     final version = (json['saveVersion'] as num?)?.toInt();
-    if (version != 1 && version != 2 && version != 3 && version != saveVersion) {
+    if (version != 1 && version != 2 && version != 3 && version != 4 &&
+        version != saveVersion) {
       throw const FormatException('지원하지 않는 저장 버전입니다.');
     }
     final encounterJson = json['encounter'];
@@ -248,6 +254,7 @@ class GameState {
     final rawMemories = json['storyMemories'];
     final rawThreads = json['storyThreads'];
     final rawPendingStory = json['pendingStory'];
+    final rawDirectedEvent = json['pendingDirectedEvent'];
     return GameState(
       daysSurvived: (json['daysSurvived'] as num?)?.toInt() ?? 0,
       bestDays: (json['bestDays'] as num?)?.toInt() ?? 0,
@@ -271,6 +278,10 @@ class GameState {
           : <StoryThread>[],
       pendingStory: rawPendingStory is Map
           ? StoryBeat.fromJson(Map<String, dynamic>.from(rawPendingStory))
+          : null,
+      pendingDirectedEvent: rawDirectedEvent is Map
+          ? PendingDirectedEvent.fromJson(
+              Map<String, dynamic>.from(rawDirectedEvent))
           : null,
       messageSerial: (json['messageSerial'] as num?)?.toInt() ?? 0,
       lastDirectedEventDay: (json['lastDirectedEventDay'] as num?)?.toInt() ?? -1,

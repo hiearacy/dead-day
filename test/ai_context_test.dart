@@ -7,18 +7,18 @@ void main() {
   test('AI context exposes bounded recent events without state mutation', () {
     final companion = Companion(name: '서윤');
     for (var i = 0; i < 9; i++) {
-      companion.remember('기억 $i: ${'가' * 160}');
+      companion.remember('기억 $i: ${List.filled(160, '가').join()}');
     }
     final state = GameState(
       companion: companion,
-      log: '확정 사건 ' + ('나' * 500),
+      log: '확정 사건 ' + (List.filled(500, '나').join()),
     );
     for (var i = 0; i < 7; i++) {
       state.record(GameEventRecord(
         id: 'event_$i',
         day: i,
         kind: EventKind.system,
-        text: '사건 $i: ${'다' * 120}',
+        text: '사건 $i: ${List.filled(120, '다').join()}',
       ));
     }
 

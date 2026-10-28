@@ -2,7 +2,7 @@
 
 **Dead Day** is an offline-first, cross-platform zombie survival text game made with **Flutter + Dart**. The goal is to survive as many days as possible. A single game engine and save format are shared between **Android, iOS and Web**.
 
-## v0.5: Gemini API-ready scenario survival game
+## v0.6: interactive Gemini-powered incidents
 - Shelter: rest or use medicine.
 - Three exploration zones: market, pharmacy, apartments.
 - Zombie encounters: fight, sneak or flee; outcomes are computed by Dart.
@@ -24,6 +24,10 @@
 - No Gemini API key is ever embedded in Flutter or committed to the repository.
 - On 429, network error, invalid AI JSON or missing config, game falls back to procedural events.
 - Remote AI calls are **not active until the developer deploys a proxy and supplies private test settings**.
+- Gemini/defensive fallback event premises now **pause for a player decision** instead of immediately altering inventory.
+- Event-specific typed choices are stored across restarts, validated by the engine, and written to causal memory.
+- Procedural event fallback prefers categories not used in recent events.
+- v1/v2/v3/v4 saved games migrate to v5; the programmer UI provides minimal functional decision buttons.
 - Old v1/v2/v3 saves automatically migrate to v4.
 
 ## Run on Android, iOS or the Web
@@ -75,6 +79,7 @@ lib/
   game/scenario_definition.dart   # authored scenario bible catalogue
   game/story_memory.dart          # causal memories, threads and choices
   game/story_system.dart          # branching follow-up events
+  game/directed_event_choice.dart # pending AI scene and typed choices
   ai/structured_event_director.dart # provider-neutral JSON parser
   ai/gemini_proxy_text_generator.dart # HTTPS client for Gemini proxy
   ai/ai_configuration.dart           # demo config / fallback selection
@@ -96,4 +101,4 @@ Game rules never depend on AI. The optional **Gemini API** event director needs 
 ## Cross-platform verification
 GitHub Actions on the `main` branch regenerates Android/Web runners and attempts `flutter analyze`, `flutter test`, `flutter build web --release`, and `flutter build apk --debug`. iOS compilation additionally needs a macOS/Xcode environment.
 
-**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md) and [chat/event director spec](docs/CHAT_AND_DIRECTOR.md) and [scenario / story specification](docs/SCENARIO_STORY_V04.md) and [Gemini API private-test setup](docs/GEMINI_API_SETUP.md).
+**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md) and [chat/event director spec](docs/CHAT_AND_DIRECTOR.md) and [scenario / story specification](docs/SCENARIO_STORY_V04.md) and [Gemini API private-test setup](docs/GEMINI_API_SETUP.md) and [interactive Gemini event spec](docs/GEMINI_EVENT_CHOICES_V06.md).

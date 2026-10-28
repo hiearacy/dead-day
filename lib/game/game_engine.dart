@@ -7,6 +7,7 @@ import 'event_system.dart';
 import 'game_action.dart';
 import 'models.dart';
 import 'npc_system.dart';
+import 'story_system.dart';
 
 /// The authoritative rules engine. No Flutter or model runtime imports here.
 /// All actions use the same verified dispatch path, regardless of their source.
@@ -17,17 +18,20 @@ class GameEngine {
     NightEventSystem? nightEvents,
     NpcSystem? npcs,
     DirectedEventSystem? directedEvents,
+    StorySystem? storySystem,
   })  : state = initialState ?? GameState(),
         _random = random ?? Random(),
         _nightEvents = nightEvents ?? const NightEventSystem(),
         _npcs = npcs ?? const NpcSystem(),
-        _directedEvents = directedEvents ?? const DirectedEventSystem();
+        _directedEvents = directedEvents ?? const DirectedEventSystem(),
+        _storySystem = storySystem ?? const StorySystem();
 
   final GameState state;
   final Random _random;
   final NightEventSystem _nightEvents;
   final NpcSystem _npcs;
   final DirectedEventSystem _directedEvents;
+  final StorySystem _storySystem;
   List<GameEventRecord> _emitted = [];
 
   /// New UI, scripts and future constrained AI agents can dispatch typed actions.
@@ -78,6 +82,18 @@ class GameEngine {
         state.addChat(ChatRole.player, action.accept! ? '함께 지내자' : '거절한다');
         _decideRecruitment(action.accept!);
         break;
+      case GameActionType.chooseStory:
+        final beat = state.pendingStory;
+        if (beat == null || action.choiceId == null) {
+          return _rejected('no_story_choice', before);
+        }
+        final choices = beat.choices.where((item) => item.id == action.choiceId);
+        if (choices.isEmpty || !_storySystem.canChoose(state, choices.first)) {
+          return _rejected('invalid_story_choice', before);
+        }
+        state.addChat(ChatRole.player, choices.first.label);
+        _resolveStory(action.choiceId!);
+        break;
     }
 
     return GameResult(
@@ -118,6 +134,14 @@ class GameEngine {
       dayAfter: state.daysSurvived,
       events: List<GameEventRecord>.unmodifiable(_emitted),
     );
+  }
+
+  void _resolveStory(String choiceId) {
+    final resolved = _storySystem.resolve(state, choiceId);
+    if (resolved == null) return; // Prevalidated at dispatch boundary.
+    state.log = resolved.summary;
+    _record('story_choice_$choiceId', EventKind.companion, resolved.summary);
+    if (state.health <= 0) _die(resolved.summary);
   }
 
   GameResult _rejected(String code, int dayBefore) => GameResult(
@@ -329,6 +353,15 @@ class GameEngine {
           '함께 지낼 수 있는지 묻는다.';
       summary += '\n$text';
       _record('companion_appears', EventKind.companion, text);
+    }
+    // Offer continuing story beats after an ordinary day finishes. The
+    // player chooses before the next main action; this costs no extra day.
+    if (!state.waitingForChoice) {
+      final beat = _storySystem.maybeOffer(state);
+      if (beat != null) {
+        summary += '\n' + beat.premise;
+        _record('story_\\${beat.id}', EventKind.system, beat.premise);
+      }
     }
     state.log = summary;
   }

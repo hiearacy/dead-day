@@ -29,7 +29,9 @@ class AiScene {
 
   factory AiScene.fromGame(GameState state) => AiScene(
         day: state.currentDay,
-        place: state.encounter?.zone.label ?? '거점',
+        place: state.encounter != null
+            ? '${state.world.label} · ${state.world.siteFor(state.encounter!.zone.name)}'
+            : '${state.world.label} · ${state.world.shelter}',
         // Keep prompts small enough for inexpensive on-device models.
         outcome: _truncate(state.log, 300),
         npcName: state.companion?.name,

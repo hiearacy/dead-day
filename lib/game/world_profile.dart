@@ -25,6 +25,24 @@ class WorldProfile {
   final int water;
   final double dangerOffset;
 
+  /// Region-specific names for the same three balanced loot categories.
+  /// This keeps engine rules shared while making each starting world distinct.
+  String siteFor(String zoneId) => switch ((id, zoneId)) {
+        ('seoul', 'market') => '서울의 폐쇄된 마트',
+        ('seoul', 'pharmacy') => '도심 약국',
+        ('seoul', 'apartments') => '버려진 고층 아파트',
+        ('busan', 'market') => '항구 물류 창고',
+        ('busan', 'pharmacy') => '항만 진료소',
+        ('busan', 'apartments') => '선원 숙소',
+        ('gangwon', 'market') => '산길 보급 창고',
+        ('gangwon', 'pharmacy') => '폐쇄된 보건지소',
+        ('gangwon', 'apartments') => '빈 산장 단지',
+        ('jeju', 'market') => '마을 공동 창고',
+        ('jeju', 'pharmacy') => '해안 의료소',
+        ('jeju', 'apartments') => '텅 빈 게스트하우스',
+        _ => '버려진 건물',
+      };
+
   Map<String, dynamic> toJson() => {'id': id};
 
   static const seoul = WorldProfile(

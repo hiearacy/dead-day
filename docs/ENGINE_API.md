@@ -70,7 +70,7 @@ Implementation notes for the designer's team (not implemented by the engine):
 - `AiScene.fromGame(state)` provides capped outcome, three recent event excerpts, three NPC memory excerpts and small stats.
 - `NoAiNarrator` remains the fallback narration adapter on Android, iOS and Web. **The event director can optionally use Gemini through a key-protected backend proxy**; it does not run models on the device.
 - The Gemini API may propose bounded narrative events, but never an inventory change, death result, arbitrary game action or trust update. The engine validates every proposal; model failures fall back to scripted events.
-- Only notable companion, combat or horde events request narration; model failure must never block play.
+- Only notable companion, combat or horde events request optional narration; the initial Gemini proxy is for the event director, not narration. Model/API failure must never block play.
 
 ## Cross-platform/testing
 - No platform code or plugin imports under `lib/game/`.

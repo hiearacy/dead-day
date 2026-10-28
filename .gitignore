@@ -9,3 +9,8 @@ build/
 *.iml
 android/local.properties
 ios/Flutter/Generated.xcconfig
+backend/.dev.vars*
+backend/.env*
+.env
+.env.*
+!backend/.dev.vars.example

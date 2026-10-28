@@ -68,6 +68,10 @@ class GameController extends ChangeNotifier {
     await dispatch(GameAction.chooseStory(choiceId));
   }
 
+  Future<void> chooseDirectedEvent(String choiceId) async {
+    await dispatch(GameAction.chooseDirectedEvent(choiceId));
+  }
+
   /// This one API can later be used by UI, scripts and validated NPC agents.
   Future<GameResult> dispatch(GameAction action) async {
     final result = _engine.execute(action);
@@ -124,6 +128,7 @@ class GameController extends ChangeNotifier {
         (event) => event.kind == EventKind.combat ||
             event.kind == EventKind.companion ||
             event.id.startsWith('story_') ||
+            event.id.startsWith('director_') ||
             event.id == 'distant_horde',
       );
 

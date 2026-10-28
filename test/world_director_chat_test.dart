@@ -101,8 +101,15 @@ void main() {
       locationId: 'busan',
     ));
     expect(accepted.accepted, isTrue);
+    expect(state.food, 5); // Premises no longer change resources.
+    expect(state.pendingDirectedEvent, isNotNull);
+    expect(state.messages.last.text, contains('폐창고'));
+    final blocked = engine.execute(const GameAction.rest());
+    expect(blocked.accepted, isFalse);
+    final choice = engine.execute(GameAction.chooseDirectedEvent('inspect'));
+    expect(choice.accepted, isTrue);
     expect(state.food, 6);
-    expect(state.messages.last.text, contains('식량 한 개'));
+    expect(state.storyMemories.last.tags, contains('inspect'));
     final duplicate = engine.acceptDirectedEvent(const EventProposal(
       type: DirectedEventType.hiddenSupplies,
       premise: '또 다른 상자에서 반짝이는 물건이 보인다.',
@@ -129,7 +136,11 @@ void main() {
       random: FixedRandom(0, roll: 0.001),
     ).acceptDirectedEvent(proposal);
     expect(accepted.accepted, isTrue);
-    expect(state.noise, 7);
+    expect(state.noise, 0);
+    final result = GameEngine(initialState: state).execute(
+      GameAction.chooseDirectedEvent('barricade'));
+    expect(result.accepted, isTrue);
+    expect(state.noise, 6);
   });
 
   test('message transcript is bounded on long runs', () {

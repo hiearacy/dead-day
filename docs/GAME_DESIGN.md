@@ -1,7 +1,16 @@
 # Dead Day — gameplay contract (v0.1)
 
 ## Goal and boundaries
-Survive as many full days as possible during a zombie apocalypse. This is an offline-first **mobile text game**, not a world simulator. The playable v0.1 has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
+Survive as many full days as possible during a zombie apocalypse. This is an offline-first **cross-platform text game**, not a world simulator. The playable v0.1 has one shelter, three exploration zones, one recruitable survivor, a combat choice encounter, basic resources and autosave.
+
+## Cross-platform contract (Android / iOS / Web)
+- Keep ALL gameplay, RNG, character states and event results in plain Dart code independent of platform plugins.
+- Use one Flutter UI with a narrow, readable content width on large web/desktop viewports, adaptive scrolling and tap-friendly controls on phones.
+- Keep save data platform-independent: the same versioned JSON schema is serialized locally via shared_preferences; saves are **per-device/per-browser**, not automatically synced between devices.
+- All platforms must work fully offline after installation/loading; browser offline availability depends on how the web app is deployed/cached, so do not claim guaranteed offline browser startup.
+- The local-model integration is **optional and platform-specific**: mobile runtimes on Android/iOS must be validated independently. Web uses the built-in scripted narrator until a suitable browser model solution is proven.
+- Android and Web have automated build checks on GitHub Actions; iOS builds require macOS/Xcode and remain unverified until run there.
+- Native platform runner folders are created with `flutter create --project-name dead_day --platforms=android,ios,web .` when setting up locally. Do not include platform-specific imports in `GameEngine`.
 
 ## Daily loop
 1. At the shelter, pick **explore** (one zone) or **rest**.

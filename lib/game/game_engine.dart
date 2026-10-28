@@ -1,4 +1,7 @@
 import 'dart:math';
+import '../ai/event_director.dart';
+import 'chat_message.dart';
+import 'directed_event_system.dart';
 import 'event_record.dart';
 import 'event_system.dart';
 import 'game_action.dart';
@@ -13,15 +16,18 @@ class GameEngine {
     Random? random,
     NightEventSystem? nightEvents,
     NpcSystem? npcs,
+    DirectedEventSystem? directedEvents,
   })  : state = initialState ?? GameState(),
         _random = random ?? Random(),
         _nightEvents = nightEvents ?? const NightEventSystem(),
-        _npcs = npcs ?? const NpcSystem();
+        _npcs = npcs ?? const NpcSystem(),
+        _directedEvents = directedEvents ?? const DirectedEventSystem();
 
   final GameState state;
   final Random _random;
   final NightEventSystem _nightEvents;
   final NpcSystem _npcs;
+  final DirectedEventSystem _directedEvents;
   List<GameEventRecord> _emitted = [];
 
   /// New UI, scripts and future constrained AI agents can dispatch typed actions.
@@ -36,30 +42,39 @@ class GameEngine {
         if (!state.canStartAction || action.zone == null) {
           return _rejected('pending_decision', before);
         }
+        state.addChat(ChatRole.player, '${action.zone!.label}을(를) 수색한다');
         _explore(action.zone!);
         break;
       case GameActionType.rest:
         if (!state.canStartAction) {
           return _rejected('pending_decision', before);
         }
+        state.addChat(ChatRole.player, '거점에서 휴식한다');
         _rest();
         break;
       case GameActionType.useMedicine:
         if (!state.canStartAction || state.medicine <= 0 || state.health >= 100) {
           return _rejected('medicine_unavailable', before);
         }
+        state.addChat(ChatRole.player, '의약품을 사용한다');
         _useMedicine();
         break;
       case GameActionType.resolveEncounter:
         if (state.encounter == null || action.encounterAction == null) {
           return _rejected('no_encounter', before);
         }
+        state.addChat(ChatRole.player, switch (action.encounterAction!) {
+          EncounterAction.fight => '싸운다',
+          EncounterAction.flee => '도망친다',
+          EncounterAction.sneak => '숨는다',
+        });
         _resolveEncounter(action.encounterAction!);
         break;
       case GameActionType.recruit:
         if (!state.pendingRecruitment || action.accept == null) {
           return _rejected('no_recruitment', before);
         }
+        state.addChat(ChatRole.player, action.accept! ? '함께 지내자' : '거절한다');
         _decideRecruitment(action.accept!);
         break;
     }
@@ -80,6 +95,30 @@ class GameEngine {
   void useMedicine() { execute(const GameAction.useMedicine()); }
   void decideRecruitment(bool accept) { execute(GameAction.recruit(accept)); }
 
+  /// Safe late-bound integration for a future *optional* mobile AI director.
+  /// This does not consume a day or bypass pending player choices.
+  GameResult acceptDirectedEvent(EventProposal proposal) {
+    final before = state.daysSurvived;
+    _emitted = [];
+    final problem = _directedEvents.rejection(state, proposal);
+    if (problem != null) return _rejected(problem, before);
+    if (!_directedEvents.passesRarity(proposal, _random)) {
+      return _rejected('rarity_roll_failed', before);
+    }
+    final effect = _directedEvents.apply(state, proposal);
+    state.lastDirectedEventDay = state.daysSurvived;
+    final text = '${proposal.premise.trim()}\\n$effect';
+    state.log = text;
+    _record('director_${proposal.type.name}', EventKind.hazard, text);
+    return GameResult(
+      accepted: true,
+      code: 'event_accepted',
+      dayBefore: before,
+      dayAfter: state.daysSurvived,
+      events: List<GameEventRecord>.unmodifiable(_emitted),
+    );
+  }
+
   GameResult _rejected(String code, int dayBefore) => GameResult(
         accepted: false,
         code: code,
@@ -96,6 +135,7 @@ class GameEngine {
       text: text,
     );
     state.record(entry);
+    state.addChat(ChatRole.world, text, eventId: id);
     _emitted.add(entry);
   }
 
@@ -104,7 +144,8 @@ class GameEngine {
     final dayPressure = min(0.15, state.daysSurvived * 0.006);
     final noisePressure = state.noise / 400.0;
     final chance =
-        (zone.encounterChance + dayPressure + noisePressure).clamp(0.0, 0.95);
+        (zone.encounterChance + state.world.dangerOffset + dayPressure + noisePressure)
+            .clamp(0.0, 0.95);
     if (_random.nextDouble() < chance) {
       state.encounter = Encounter(
         zone: zone,

@@ -49,7 +49,7 @@ GameEngine.acceptDirectedEvent(...) applies bounded rule effect
     ↓
 ChatMessage + GameEventRecord + saved GameState
 ```
-The director proposes a **premise**, never hardcoded HP changes or unvalidated arbitrary actions. The engine alone determines effects. Proposals are rejected for impossible NPCs, wrong world, unsafe game phases, invalid premises or duplicate same-day calls.
+The Gemini API director (or procedural fallback) proposes a **premise**, never hardcoded HP changes or unvalidated arbitrary actions. The engine alone determines effects. Proposals are rejected for impossible NPCs, wrong world, unsafe game phases, invalid premises or duplicate same-day calls.
 
 Mechanical archetypes can be small even while narrative setups are combinatorial/free-form. At present: hidden supplies, tainted water, strange broadcast, stranger at door, companion conflict, unsettling encounter. Expand archetypes only when a new *mechanical* effect is needed, not for each story sentence.
 

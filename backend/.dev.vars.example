@@ -1,0 +1,4 @@
+# Copy to backend/.dev.vars for local Worker testing; never commit secrets.
+GEMINI_API_KEY=replace_with_key_from_google_ai_studio
+DEMO_ACCESS_TOKEN=replace_with_random_32_plus_character_secret
+# ALLOWED_WEB_ORIGIN=http://localhost:XXXX

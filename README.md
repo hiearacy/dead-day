@@ -2,7 +2,7 @@
 
 **Dead Day** is an offline-first, cross-platform zombie survival text game made with **Flutter + Dart**. The goal is to survive as many days as possible. A single game engine and save format are shared between **Android, iOS and Web**.
 
-## v0.2: gameplay systems (no LLM required)
+## v0.3: chat/world/event-director foundation (no LLM required)
 - Shelter: rest or use medicine.
 - Three exploration zones: market, pharmacy, apartments.
 - Zombie encounters: fight, sneak or flee; outcomes are computed by Dart.
@@ -12,7 +12,11 @@
 - Typed `GameAction` -> `GameEngine.execute` -> `GameResult` with structured event records.
 - Nighttime event catalogue, noise-driven risk and capped NPC memories.
 - Version 1 saves migrate to version 2 (event journal + noise); all platforms retain the same JSON format.
-- Optional `AiNarrator` interface has a small context window and is called only for notable events; **no local model is bundled yet**.
+- New runs randomize a Seoul, Busan, Gangwon or Jeju starting environment, initial supplies and location-specific site descriptions.
+- Chat transcript is saved with player/world/NPC/system roles; UI/UX bubble rendering and typewriter effects are handed to the designer.
+- `ProceduralEventDirector` proposes lightweight, varied world events every three completed days when the game phase permits; the engine validates and caps all effects.
+- Future on-device AI can replace the director without changing gameplay rules. Optional `AiNarrator` is already defined; **no local LLM is bundled yet**.
+- Old v1/v2 saves automatically migrate to v3.
 
 ## Run on Android, iOS or the Web
 1. Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) and run `flutter doctor`.
@@ -60,15 +64,20 @@ lib/
   game/event_record.dart       # structured event journal
   game/event_system.dart       # nighttime event catalogue
   game/npc_system.dart         # daily trust / departure rules
+  game/world_profile.dart      # starting region presets and site naming
+  game/chat_message.dart       # UI-agnostic conversation records
+  game/directed_event_system.dart  # proposal validation / rule effects
+  ai/event_director.dart       # optional director interface
+  ai/procedural_director.dart  # low-power fallback event generator
   data/save_service.dart       # shared_preferences storage
   ai/narrator.dart             # optional narrative AI boundary
 test/game_engine_test.dart
 docs/GAME_DESIGN.md
 ```
 
-Game rules never depend on AI. **Mobile local AI** is a future optional adapter, not a requirement for Android, iOS or browser play. For Web (and devices without a validated local model), use `NoAiNarrator` and the built-in game text. An LLM may decorate an outcome but cannot change the outcome.
+Game rules never depend on AI. **Mobile local AI** is a future optional adapter, not a requirement for Android, iOS or browser play. For Web (and devices without a validated local model), use `NoAiNarrator` and the built-in game text. An LLM may propose a situation or decorate an outcome, but only the engine may validate and execute mechanical changes.
 
 ## Cross-platform verification
 GitHub Actions on the `main` branch regenerates Android/Web runners and attempts `flutter analyze`, `flutter test`, `flutter build web --release`, and `flutter build apk --debug`. iOS compilation additionally needs a macOS/Xcode environment.
 
-**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md).
+**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md) and [chat/event director spec](docs/CHAT_AND_DIRECTOR.md).

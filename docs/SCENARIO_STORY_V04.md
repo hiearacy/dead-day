@@ -1,4 +1,4 @@
-# Dead Day v0.4 — small-model-friendly scenario and causality design
+# Dead Day v0.4 — scenario and causality design (AI transport changed in v0.5)
 
 ## Goal
 Prove that a **short, authored scenario bible + the player's consequential choices** can sustain a coherent text-survival story without asking a tiny mobile AI to invent a world from scratch.
@@ -40,7 +40,7 @@ Prototype stories are 2-beat arcs: `radio_signal` and `unknown_visitor`. Once cl
   "locationId": "busan"
 }
 ```
-It rejects malformed JSON, unknown event types and long output. `DirectedEventSystem` is still the final authority for context consistency, rarity, state mutation and other rules. `FallbackEventDirector` can switch to scripted events if the model fails. **No inference runtime/model download has been installed**: the game remains light, offline-first and playable without AI.
+It rejects malformed JSON, unknown event types and long output. `DirectedEventSystem` is still the final authority for context consistency, rarity, state mutation and other rules. `FallbackEventDirector` can switch to scripted events if the API fails. **As of v0.5, an optional remote Gemini API proxy replaces the on-device model plan.** See `docs/GEMINI_API_SETUP.md`.
 
 ## Cross-platform design handoff
 Use `state.messages` for chat bubbles and `state.pendingStory` to render a choice group below the latest world message. The programmer UI includes *minimal* functional buttons so the game cannot soft-lock. The designer owns chat scroll behavior, visual styling, blinking caret, text-reveal pace and accessibility. Never make a rendering animation advance a day.
@@ -50,4 +50,4 @@ Technical test: Android/Web `flutter test` and builds, and iOS on macOS/Xcode wh
 
 Manual 10–15-minute playtest: can players recall a previous choice when its consequence reappears? Do they hesitate before selecting? Does the second run differ? Are event cooldowns and causal memories coherent? Record 5–10 sessions before tuning event frequency.
 
-Local model evaluation (future): compare a small candidate's Korean fluency and premise correctness with a scripted director; benchmark p50/p95 latency, peak RAM, battery and temperature over 20–30 minutes on a midrange Android. Start with roughly 128 output tokens and a capped input. Do not ship an untested model or claim low-end performance yet.
+Gemini API evaluation (future): test Korean storytelling, consistency with scenario rules, failed JSON rates, network latency, and quota exhaustion. Limit output to approximately 128 tokens in the first prototype, measure calls per play session, and confirm the gameplay fallback works with no network. Do not embed your API key in the app.

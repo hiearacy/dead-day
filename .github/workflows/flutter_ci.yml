@@ -1,4 +1,4 @@
-name: Flutter CI
+name: Flutter Cross-platform CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  check:
+  android-and-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,9 +15,15 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Generate Android and Web runners
+        run: flutter create --project-name dead_day --platforms=android,web .
       - name: Install dependencies
         run: flutter pub get
       - name: Static analysis
         run: flutter analyze
       - name: Unit tests
         run: flutter test
+      - name: Build Web
+        run: flutter build web --release
+      - name: Build Android APK
+        run: flutter build apk --debug

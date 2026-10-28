@@ -1,4 +1,4 @@
-# Dead Day — system / designer integration contract (v0.4)
+# Dead Day — system / designer integration contract (v0.6)
 
 ## Responsibility split
 - **Developer (Flutter + Dart engine)**: authoritative rules, persistence, event catalogue, companion decision logic, AI boundary and automated tests.
@@ -31,6 +31,7 @@ GameEngine.execute(GameAction)   [sync, authoritative]
 - `GameAction.resolve(EncounterAction.fight | flee | sneak)`
 - `GameAction.recruit(bool accept)`
 - `GameAction.chooseStory(String choiceId)` (only when `pendingStory` is present)
+- `GameAction.chooseDirectedEvent(String choiceId)` (only when `pendingDirectedEvent` is present)
 
 Always send actions through `GameController.dispatch(...)`; do **not** mutate `GameState` from UI code. The old controller methods (`rest()`, etc.) remain as convenience wrappers.
 
@@ -45,7 +46,8 @@ Always send actions through `GameController.dispatch(...)`; do **not** mutate `G
 - `daysSurvived`, `bestDays`, `gameOver`.
 - `encounter`, `pendingRecruitment`, companion info.
 - `scenario`: selected authored setting and rules (three current presets).
-- `pendingStory`: unresolved story beat + typed choices, must be shown when not null.
+- `pendingStory`: unresolved authored story beat + typed choices, must be shown when not null.
+- `pendingDirectedEvent`: unresolved Gemini/procedural incident, with typed choices. Render it under the latest world message and dispatch a choice before proceeding.
 - `storyMemories`, `storyThreads`: bounded causal memory and continuing story state.
 - `journal`: most recent 24 structured `GameEventRecord` entries (`id`, `day`, `kind`, `text`). UI can display or animate these but must not infer gameplay rules by parsing Korean text.
 - `log`: a temporary fallback text field for the existing programmer UI.
@@ -74,6 +76,6 @@ Implementation notes for the designer's team (not implemented by the engine):
 
 ## Cross-platform/testing
 - No platform code or plugin imports under `lib/game/`.
-- Old v1/v2/v3 saves automatically migrate to v4; preserve this in future releases.
+- Old v1/v2/v3/v4 saves automatically migrate to v5; preserve this in future releases.
 - Android, iOS and Web share the same deterministic game rules.
 - Run `flutter analyze`, `flutter test`, Android and Web builds. Physical device thermal checks and iOS builds are later validation steps.

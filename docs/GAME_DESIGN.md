@@ -40,7 +40,7 @@ Medicine is a free shelter action, healing 30 HP. A zone encounter decision must
 - Fresh runs choose one of four locations (Seoul, Busan, Gangwon, Jeju), with environment-specific supply levels, combat danger offset and named exploration sites. The region is persisted for the whole run.
 - All legal actions create saved chat transcript messages separately from the event journal. Roles include player/world/NPC/system, allowing a messaging-platform UI without interpreting Korean strings.
 - The default lightweight `ProceduralEventDirector` proposes a situation after every third completed day when no decision is pending, and the `DirectedEventSystem` checks setting, NPC validity, duplicates, premise length and a separate very-rare event gate. Only the engine changes resources or trust.
-- `EventDirector` is a replaceable optional on-device AI provider. No model is currently bundled. Model failure must not prevent gameplay.
+- `EventDirector` is a replaceable provider: the Gemini API proxy handles optional cloud generation, and the procedural director remains the default/fallback. Network or quota failure must not prevent gameplay.
 - Full UI animation, continuous NPC conversation, and a broad player-choice story event graph remain future work.
 - See `docs/CHAT_AND_DIRECTOR.md` for visual design handoff and backend data contracts.
 

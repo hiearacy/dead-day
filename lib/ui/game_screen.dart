@@ -29,7 +29,10 @@ class GameScreen extends StatelessWidget {
           ],
         ),
         body: SafeArea(
-          child: ListView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Text('DAY ' + state.currentDay.toString().padLeft(2, '0'),
@@ -93,6 +96,8 @@ class GameScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.white54)),
             ],
+              ),
+            ),
           ),
         ),
       );

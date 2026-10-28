@@ -59,12 +59,12 @@ A very rare unsettling-encounter branch receives an additional 0.2% engine gate;
 - Three scenario bibles determine the stable world rules, mood and story seeds.
 - Player choices in `state.pendingStory` are typed `StoryChoice` objects; use `controller.chooseStory(choice.id)` rather than parsing the UI message.
 - A decision is written to `StoryMemory`, and `StoryThread` later picks up that exact choice to generate a consequential follow-up.
-- `StructuredAiEventDirector` accepts strictly bounded structured JSON from a future on-device model; it has **no runtime attached yet**.
+- `StructuredAiEventDirector` accepts strictly bounded structured JSON from an optional Gemini API proxy. It is configured in private builds only; no API key is stored in the app.
 - UI/UX: render story choices beneath the latest chat bubble and keep its state after returning to the app. The programmer fallback buttons are functional only, not final visual design.
-- The procedural event director is checked on every fourth completed day if no other choice is pending; story beats have priority at eligible three-day intervals.
+- The procedural event director (or optional Gemini proxy) is checked on every fourth completed day if no other choice is pending; story beats have priority at eligible three-day intervals.
 
 ## Present limitations and roadmap
 - **Implemented in code**: random world, locale-specific site descriptions, durable chat data, rule-based varied director, validation, saving and fallback.
-- **Not implemented**: actual bubbles/typewriter animation, LLM installation/inference, freeform NLP, full NPC dialogue/romance/complex story-branch choices.
+- **Not implemented**: actual bubbles/typewriter animation, deployed/authenticated public Gemini backend, freeform NLP, full NPC dialogue/romance/complex story-branch choices.
 - **Next**: small conditional branching event queue with two or three player choices, then scenario variety/AI benchmark.
 - iOS/Web/Android gameplay remains the same pure Dart engine; Web can continue with procedural director if no local model is available.

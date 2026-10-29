@@ -34,12 +34,6 @@ class WorldContextSelector {
     // Current location, then its parent chain. Preserve older discoveries.
     includeAncestors(state.currentLocationId);
 
-    // Nearby places and clues usually matter more than globally recent ones.
-    for (final element in state.generatedElements.reversed) {
-      if (element.parentId == state.currentLocationId) add(element);
-      if (selected.length >= limit) break;
-    }
-
     // Owned item facts should accompany inventory identifiers.
     for (final item in state.inventory.reversed.take(5)) {
       includeAncestors(item.elementId);
@@ -50,6 +44,12 @@ class WorldContextSelector {
       for (final id in memory.tags) {
         includeAncestors(id);
       }
+    }
+
+    // Nearby places and clues usually matter more than globally recent ones.
+    for (final element in state.generatedElements.reversed) {
+      if (element.parentId == state.currentLocationId) add(element);
+      if (selected.length >= limit) break;
     }
 
     // Fill remaining space with new facts for novelty.

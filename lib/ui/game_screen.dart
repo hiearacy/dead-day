@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../app/game_controller.dart';
 import 'typewriter_text.dart';
 import '../game/models.dart';
+import '../game/chat_message.dart';
 import '../game/scenario_definition.dart';
 import '../game/story_turn.dart';
 import '../game/story_memory.dart';
@@ -66,11 +67,41 @@ class GameScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('오늘의 기록',
+                      Text('대화 기록',
                         style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 10),
-                      TypewriterText(text: state.log),
-                      if (controller.aiText != null) ...[
+                      for (final message
+                          in state.messages.reversed.take(8).toList().reversed)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Align(
+                            alignment: message.role == ChatRole.player
+                                ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Column(
+                              crossAxisAlignment: message.role == ChatRole.player
+                                  ? CrossAxisAlignment.end
+                                  : CrossAxisAlignment.start,
+                              children: [
+                                Text(message.role == ChatRole.player
+                                        ? '플레이어' : '세계',
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.white54)),
+                                if (message.id == state.messages.last.id &&
+                                    message.role == ChatRole.world)
+                                  TypewriterText(
+                                    key: ValueKey(message.id),
+                                    text: message.text,
+                                  )
+                                else
+                                  Text(message.text,
+                                      style: const TextStyle(height: 1.5)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (state.messages.isEmpty)
+                        TypewriterText(text: state.log),
+                      if (controller.aiText != null && !state.interactiveMode) ...[
                         const Divider(),
                         Text(controller.aiText!),
                       ],

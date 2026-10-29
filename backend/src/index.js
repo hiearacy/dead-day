@@ -1,3 +1,5 @@
+import { handleStory } from "./story_route.js";
+
 // Dead Day Gemini API proxy (Cloudflare Worker).
 // Gemini keys NEVER belong in Flutter, public git, URLs, or browser code.
 // This endpoint is for a PRIVATE TEST BUILD ONLY: the demonstration bearer
@@ -6,9 +8,8 @@
 // per-user quotas, abuse controls, and centralized daily Gemini budgets.
 
 const GEMINI_HOST = "https://generativelanguage.googleapis.com";
-const DEFAULT_MODEL = "gemini-2.5-flash-lite";
 const MAX_PROMPT_CHARS = 6000;
-const MAX_BODY_CHARS = 7500;
+const MAX_BODY_CHARS = 12000;
 
 const SYSTEM_INSTRUCTION = [
   "당신은 DEAD DAY라는 한국어 좀비 생존 게임의 사건 디렉터다.",
@@ -62,7 +63,7 @@ export default {
       });
     }
 
-    if (url.pathname !== "/v1/director" || request.method !== "POST") {
+    if (!["/v1/director", "/v1/story"].includes(url.pathname) || request.method !== "POST") {
       return json(404, { error: "not_found" }, origin);
     }
     if (requestOrigin && !origin) {
@@ -91,6 +92,18 @@ export default {
     } catch (_) {
       return json(400, { error: "invalid_json" }, origin);
     }
+    if (url.pathname === "/v1/story") {
+      if (!env.DEMO_RATE_LIMITER) {
+        return json(503, { error: "rate_limiter_missing" }, origin);
+      }
+      const allowed = await env.DEMO_RATE_LIMITER.limit({
+        key: "story_private_prototype",
+      });
+      if (!allowed.success) {
+        return json(429, { error: "prototype_rate_limit" }, origin);
+      }
+      return handleStory(body, env, origin);
+    }
     const prompt = body?.prompt;
     const maxOutputTokens = body?.maxOutputTokens;
     const temperature = body?.temperature;
@@ -111,7 +124,8 @@ export default {
       return json(429, { error: "prototype_rate_limit" }, origin);
     }
 
-    const model = env.GEMINI_MODEL || DEFAULT_MODEL;
+    const model = env.GEMINI_MODEL;
+    if (!model) return json(503, { error: "model_not_configured" }, origin);
     const payload = {
       systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
       contents: [{ role: "user", parts: [{ text: prompt }] }],

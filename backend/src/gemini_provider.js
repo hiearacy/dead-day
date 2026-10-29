@@ -53,6 +53,7 @@ export class GeminiProvider extends LlmProvider {
       },
       context,
     });
+    const started = Date.now();
     const upstream = await this.requestFetch(
       ENDPOINT + encodeURIComponent(this.env.GEMINI_MODEL) + ":generateContent",
       {
@@ -84,7 +85,24 @@ export class GeminiProvider extends LlmProvider {
       .map((part) => part.text).join("") ?? "";
     if (!raw || raw.length > 9000) throw new Error("invalid_model_response");
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Numeric usage counts only. Never echo upstream text, credentials
+      // or prompts in diagnostics.
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const usage = response.usageMetadata ?? {};
+        parsed._diagnostics = {
+          source: "gemini",
+          model: this.env.GEMINI_MODEL,
+          latency_ms: Date.now() - started,
+          prompt_tokens: Number.isFinite(usage.promptTokenCount)
+            ? Math.max(0, usage.promptTokenCount) : null,
+          output_tokens: Number.isFinite(usage.candidatesTokenCount)
+            ? Math.max(0, usage.candidatesTokenCount) : null,
+          total_tokens: Number.isFinite(usage.totalTokenCount)
+            ? Math.max(0, usage.totalTokenCount) : null,
+        };
+      }
+      return parsed;
     } catch (_) {
       throw new Error("invalid_model_json");
     }

@@ -63,6 +63,24 @@ export default {
       });
     }
 
+    if (url.pathname === "/v1/health" && request.method === "GET") {
+      if (requestOrigin && !origin) {
+        return json(403, { error: "origin_not_allowed" }, null);
+      }
+      if (!isAuthorized(request, env)) {
+        return json(401, { error: "unauthorized" }, origin);
+      }
+      // Connection diagnostics never contact Gemini and never disclose keys.
+      const configured = Boolean(env.GEMINI_API_KEY && env.GEMINI_MODEL &&
+        env.DEMO_RATE_LIMITER);
+      return json(configured ? 200 : 503, {
+        service: "dead-day-proxy",
+        mode: "private-prototype",
+        ready: configured,
+        model: env.GEMINI_MODEL || null,
+        quota: "edge-prototype-only",
+      }, origin);
+    }
     if (!["/v1/director", "/v1/story"].includes(url.pathname) || request.method !== "POST") {
       return json(404, { error: "not_found" }, origin);
     }

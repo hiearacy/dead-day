@@ -153,3 +153,50 @@ test("server accepts coherent item pickup proposal", async () => {
   assert.equal(turn.choices[0].target_id, "item_radio");
   assert.equal(turn.generated_elements[0].kind, "item");
 });
+
+// Provider diagnostics contain counts only; never leak keys or prompts.
+test("story response exposes bounded usage stats without secrets", async () => {
+  const result = await handleStory({ context }, {}, null, {
+    generateStory: async () => ({
+      ...proposed,
+      _diagnostics: {
+        source: "gemini", model: "test-gemini-model",
+        latency_ms: 1250, prompt_tokens: 435, output_tokens: 115,
+        total_tokens: 550, secret: "MUST_NOT_ECHO",
+      },
+    }),
+  });
+  assert.equal(result.status, 200);
+  const response = await result.json();
+  assert.equal(response.diagnostics.prompt_tokens, 435);
+  assert.equal(response.diagnostics.latency_ms, 1250);
+  assert.equal(response.diagnostics.model, "test-gemini-model");
+  assert.equal(JSON.stringify(response).includes("MUST_NOT_ECHO"), false);
+});
+
+test("authenticated health checks configuration without calling Gemini", async () => {
+  const token = "super-secret-prototype-token-12345678";
+  const env = {
+    DEMO_ACCESS_TOKEN: token, GEMINI_API_KEY: "never-echo-key",
+    GEMINI_MODEL: "gemini-test-model",
+    DEMO_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  };
+  const request = () => new Request(
+    "https://dead-day.example.workers.dev/v1/health",
+    { headers: { authorization: "Bearer " + token } },
+  );
+  const ready = await worker.fetch(request(), env);
+  assert.equal(ready.status, 200);
+  const health = await ready.json();
+  assert.equal(health.ready, true);
+  assert.equal(health.model, "gemini-test-model");
+  assert.equal(JSON.stringify(health).includes("never-echo-key"), false);
+  const missing = await worker.fetch(request(), {
+    ...env, GEMINI_API_KEY: undefined,
+  });
+  assert.equal(missing.status, 503);
+  assert.equal((await missing.json()).ready, false);
+  const unauth = await worker.fetch(new Request(
+    "https://dead-day.example.workers.dev/v1/health"), env);
+  assert.equal(unauth.status, 401);
+});

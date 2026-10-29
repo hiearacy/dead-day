@@ -115,7 +115,16 @@ export async function handleStory(body, env, origin, provider = new GeminiProvid
   try {
     const raw = await provider.generateStory(context);
     const turn = validateAndNormalizeStory(raw, context);
-    return reply(200, { turn }, origin);
+    const d = raw?._diagnostics;
+    const diagnostics = d && d.source === "gemini" ? {
+      source: "gemini",
+      model: typeof d.model === "string" ? d.model : null,
+      latency_ms: Number.isFinite(d.latency_ms) ? d.latency_ms : null,
+      prompt_tokens: Number.isFinite(d.prompt_tokens) ? d.prompt_tokens : null,
+      output_tokens: Number.isFinite(d.output_tokens) ? d.output_tokens : null,
+      total_tokens: Number.isFinite(d.total_tokens) ? d.total_tokens : null,
+    } : null;
+    return reply(200, { turn, diagnostics }, origin);
   } catch (error) {
     const code = error?.message === "gemini_quota_exceeded"
       ? "gemini_quota_exceeded" : "story_generation_unavailable";

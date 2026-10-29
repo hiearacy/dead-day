@@ -23,6 +23,10 @@ void main() {
       expect(game['location_id'], startsWith('start_'));
       expect(game['player'], isA<Map>());
       return http.Response.bytes(utf8.encode(jsonEncode({
+        'diagnostics': {
+          'source': 'gemini', 'model': 'test-model',
+          'latency_ms': 555, 'total_tokens': 350,
+        },
         'turn': {
           'id': 'world_turn_1_test',
           'story': '서울역 지하 통로에서 희미한 불빛이 보인다. '
@@ -52,6 +56,8 @@ void main() {
     expect(turn.choices, hasLength(3));
     expect(turn.choices.first.targetId, 'location_b3');
     expect(turn.generatedElements.first.id, 'location_b3');
+    expect(provider.lastSource, 'gemini');
+    expect(provider.lastUsage?['total_tokens'], 350);
     provider.close();
   });
 
@@ -73,6 +79,9 @@ void main() {
     expect(turn.choices, hasLength(3));
     expect(turn.generatedElements, hasLength(1));
     expect(turn.id, contains('fallback'));
+    expect(provider.lastSource, 'offline');
+    expect(provider.usedFallback, isTrue);
+    expect(provider.lastUsage, isNull);
     primary.close();
   });
 

@@ -5,7 +5,8 @@ import 'world_story_provider.dart';
 
 /// Gemini API key stays in the Worker. The demo bearer is a temporary
 /// private-testing credential and MUST NOT be shipped in a public release.
-class GeminiWorldStoryProvider implements WorldStoryProvider {
+class GeminiWorldStoryProvider
+    implements WorldStoryProvider, StoryProviderDiagnostics {
   GeminiWorldStoryProvider({
     required this.endpoint, required this.demoToken, http.Client? client,
   }) : _client = client ?? http.Client() {
@@ -22,6 +23,15 @@ class GeminiWorldStoryProvider implements WorldStoryProvider {
   final http.Client _client;
 
   @override
+  String get lastSource => 'gemini';
+
+  @override
+  bool get usedFallback => false;
+
+  @override
+  Map<String, dynamic>? lastUsage;
+
+  @override
   Future<StoryTurn> generate(StoryContext context) async {
     final response = await _client.post(endpoint, headers: {
       'content-type': 'application/json',
@@ -36,6 +46,11 @@ class GeminiWorldStoryProvider implements WorldStoryProvider {
     if (data is! Map || data['turn'] is! Map) {
       throw const FormatException('Invalid story response');
     }
+    final rawDiagnostics = data['diagnostics'];
+    lastUsage = rawDiagnostics is Map &&
+            rawDiagnostics['source'] == 'gemini'
+        ? Map<String, dynamic>.from(rawDiagnostics)
+        : null;
     return StoryTurn.fromJson(Map<String, dynamic>.from(data['turn'] as Map));
   }
 

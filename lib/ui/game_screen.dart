@@ -138,9 +138,23 @@ class GameScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Gemini API 사용 가능 · 연결 실패 시 규칙 기반 대체 진행',
+              Text(
+                controller.storySource == 'gemini'
+                    ? '이 장면: Gemini API 생성'
+                    : controller.storySource == 'offline'
+                        ? '이 장면: 규칙 기반 생성'
+                        : '이 장면: 테스트 생성기',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.white54)),
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+              if (controller.storySourceNote != null)
+                Text(controller.storySourceNote!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, color: Colors.orangeAccent)),
+              if (controller.storyUsage?['total_tokens'] is num)
+                Text('이번 API 호출: ${controller.storyUsage!['total_tokens']} 토큰',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, color: Colors.white54)),
             ],
               ),
             ),

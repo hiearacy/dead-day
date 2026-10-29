@@ -25,6 +25,9 @@ class GameController extends ChangeNotifier {
   final EventDirector _director;
   final WorldStoryProvider _worldStoryProvider;
   bool generatingWorldStory = false;
+  String storySource = 'offline';
+  Map<String, dynamic>? storyUsage;
+  String? storySourceNote;
   GameEngine _engine = GameEngine(initialState: GameState.newRun());
   Future<void> _saveQueue = Future<void>.value();
   int _sequence = 0;
@@ -102,8 +105,22 @@ class GameController extends ChangeNotifier {
           engine.state.waitingForChoice) {
         return;
       }
+      storySource = _worldStoryProvider is StoryProviderDiagnostics
+          ? (_worldStoryProvider as StoryProviderDiagnostics).lastSource
+          : (_worldStoryProvider is ProceduralWorldStoryProvider
+              ? 'offline' : 'custom');
+      storyUsage = _worldStoryProvider is StoryProviderDiagnostics
+          ? (_worldStoryProvider as StoryProviderDiagnostics).lastUsage
+          : null;
+      storySourceNote = _worldStoryProvider is StoryProviderDiagnostics &&
+              (_worldStoryProvider as StoryProviderDiagnostics).usedFallback
+          ? 'Gemini 연결·할당량·응답 문제로 규칙 기반 장면을 사용합니다.'
+          : null;
       var applied = engine.acceptWorldTurn(proposal);
       if (!applied.accepted) {
+        storySource = 'offline';
+        storyUsage = null;
+        storySourceNote = 'AI 장면이 게임 규칙을 통과하지 못해 대체 장면을 생성했습니다.';
         // A provider can return structurally valid JSON that still
         // contradicts the engine. Never trust it; try the same local fallback.
         final fallback = await ProceduralWorldStoryProvider().generate(
@@ -112,6 +129,7 @@ class GameController extends ChangeNotifier {
         applied = engine.acceptWorldTurn(fallback);
       }
       if (applied.accepted) {
+        error = null;
         lastResult = applied;
         _notify();
         await _persist();
@@ -119,6 +137,8 @@ class GameController extends ChangeNotifier {
         error = '새 장면을 검증하지 못했습니다. 다시 시도할 수 있습니다.';
       }
     } catch (_) {
+      storySource = 'offline';
+      storyUsage = null;
       error = '이야기 생성에 실패했습니다. 다시 시도할 수 있습니다.';
     } finally {
       generatingWorldStory = false;
@@ -200,6 +220,9 @@ class GameController extends ChangeNotifier {
     lastResult = null;
     aiText = null;
     error = null;
+    storySource = 'offline';
+    storyUsage = null;
+    storySourceNote = null;
     _notify();
     await _persist();
     if (state.interactiveMode) await requestWorldStory();

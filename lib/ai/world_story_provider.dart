@@ -83,6 +83,13 @@ abstract class WorldStoryProvider {
   Future<StoryTurn> generate(StoryContext context);
 }
 
+/// Optional status interface. Never contains provider API keys or story text.
+abstract class StoryProviderDiagnostics {
+  String get lastSource;
+  Map<String, dynamic>? get lastUsage;
+  bool get usedFallback;
+}
+
 /// Offline, no-secret fallback. It runs the SAME validator and rule engine
 /// as Gemini; it is deliberately simple rather than pretending to be an LLM.
 class ProceduralWorldStoryProvider implements WorldStoryProvider {
@@ -131,16 +138,38 @@ class ProceduralWorldStoryProvider implements WorldStoryProvider {
   }
 }
 
-class FallbackWorldStoryProvider implements WorldStoryProvider {
-  const FallbackWorldStoryProvider(this.primary, this.fallback);
+class FallbackWorldStoryProvider
+    implements WorldStoryProvider, StoryProviderDiagnostics {
+  FallbackWorldStoryProvider(this.primary, this.fallback);
   final WorldStoryProvider primary;
   final WorldStoryProvider fallback;
 
   @override
+  String lastSource = 'offline';
+
+  @override
+  Map<String, dynamic>? lastUsage;
+
+  @override
+  bool usedFallback = false;
+
+  @override
   Future<StoryTurn> generate(StoryContext context) async {
+    usedFallback = false;
+    lastUsage = null;
     try {
-      return await primary.generate(context);
+      final turn = await primary.generate(context);
+      lastSource = primary is StoryProviderDiagnostics
+          ? (primary as StoryProviderDiagnostics).lastSource
+          : 'remote';
+      lastUsage = primary is StoryProviderDiagnostics
+          ? (primary as StoryProviderDiagnostics).lastUsage
+          : null;
+      return turn;
     } catch (_) {
+      usedFallback = true;
+      lastSource = 'offline';
+      lastUsage = null;
       return fallback.generate(context);
     }
   }

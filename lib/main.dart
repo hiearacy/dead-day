@@ -18,6 +18,7 @@ class DeadDayApp extends StatefulWidget {
 class _DeadDayAppState extends State<DeadDayApp> {
   final GameController _controller = GameController(
     director: AiConfiguration.createDirector(),
+    worldStoryProvider: AiConfiguration.createWorldStoryProvider(),
   );
 
   @override

@@ -12,6 +12,10 @@ class ScenarioDefinition {
     required this.worldIds,
     required this.rules,
     required this.storySeeds,
+    this.era = '현대',
+    this.seedLocations = const [],
+    this.seedCharacters = const [],
+    this.seedItems = const [],
   });
 
   final String id;
@@ -21,6 +25,10 @@ class ScenarioDefinition {
   final List<String> worldIds;
   final List<String> rules;
   final List<String> storySeeds;
+  final String era;
+  final List<String> seedLocations;
+  final List<String> seedCharacters;
+  final List<String> seedItems;
 
   WorldProfile pickWorld(Random random) =>
       WorldProfile.byId(worldIds[random.nextInt(worldIds.length)]);
@@ -41,6 +49,9 @@ class ScenarioCatalog {
       '주인공의 죽음은 되돌릴 수 없다.',
     ],
     storySeeds: ['radio_signal', 'unknown_visitor'],
+    seedLocations: ['폐쇄된 지하철역', '임시 대피소', '버려진 병원'],
+    seedCharacters: ['구조를 기다리는 생존자', '정체가 불분명한 방송 담당자'],
+    seedItems: ['라디오', '응급 처치 키트', '낡은 지도'],
   );
 
   static const lostSignal = ScenarioDefinition(
@@ -48,6 +59,11 @@ class ScenarioCatalog {
     title: '마지막 송신',
     premise: '도시의 통신망이 붕괴한 뒤, 같은 주파수에서 매일 짧은 구조 신호가 들린다.',
     tone: '서늘한 미스터리, 생존과 불신',
+    era: '좀비 사태 발발 30일 후',
+    seedLocations: ['서울역 지하철 승강장', '폐쇄된 통제실', '도심 대피소'],
+    seedCharacters: ['실종된 생존자', '구조 신호 발신자', '연구 기록 관리인'],
+    seedItems: ['휴대용 라디오', '감염자 연구 기록', '지하역 지도'],
+
     worldIds: ['seoul', 'busan'],
     rules: [
       '군의 구조 방송은 진짜라는 보장이 없다.',
@@ -62,6 +78,10 @@ class ScenarioCatalog {
     title: '바다의 끝',
     premise: '해안의 보급선이 끊겼다. 생존자들은 폐쇄된 해안 시설에서 하루하루 버틴다.',
     tone: '고립감, 생존자 사이의 갈등과 희망',
+    seedLocations: ['부두 보급창', '해안 격리소', '비어 있는 어선'],
+    seedCharacters: ['항만 노동자', '표류 생존자'],
+    seedItems: ['선박 무전기', '녹슨 열쇠', '구조 신호 기록'],
+
     worldIds: ['busan', 'jeju'],
     rules: [
       '섬이나 항구 밖으로 쉽게 이동할 수 없다.',

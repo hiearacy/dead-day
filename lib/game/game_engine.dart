@@ -1,6 +1,9 @@
 import 'dart:math';
 import '../ai/event_director.dart';
 import 'chat_message.dart';
+import 'generated_world_element.dart';
+import 'story_turn.dart';
+import 'world_story_validator.dart';
 import 'directed_event_system.dart';
 import 'event_record.dart';
 import 'event_system.dart';
@@ -20,12 +23,14 @@ class GameEngine {
     NpcSystem? npcs,
     DirectedEventSystem? directedEvents,
     StorySystem? storySystem,
+    WorldStoryValidator? worldStoryValidator,
   })  : state = initialState ?? GameState(),
         _random = random ?? Random(),
         _nightEvents = nightEvents ?? const NightEventSystem(),
         _npcs = npcs ?? const NpcSystem(),
         _directedEvents = directedEvents ?? const DirectedEventSystem(),
-        _storySystem = storySystem ?? const StorySystem();
+        _storySystem = storySystem ?? const StorySystem(),
+        _worldStoryValidator = worldStoryValidator ?? const WorldStoryValidator();
 
   final GameState state;
   final Random _random;
@@ -33,6 +38,7 @@ class GameEngine {
   final NpcSystem _npcs;
   final DirectedEventSystem _directedEvents;
   final StorySystem _storySystem;
+  final WorldStoryValidator _worldStoryValidator;
   List<GameEventRecord> _emitted = [];
 
   /// New UI, scripts and future constrained AI agents can dispatch typed actions.
@@ -109,6 +115,16 @@ class GameEngine {
         state.addChat(ChatRole.player, selected.first.label);
         _resolveDirectedEvent(action.choiceId!);
         break;
+      case GameActionType.chooseWorldTurn:
+        final turn = state.pendingWorldTurn;
+        if (turn == null || action.choiceId == null) {
+          return _rejected('no_world_story', before);
+        }
+        final choices = turn.choices.where((v) => v.id == action.choiceId);
+        if (choices.isEmpty) return _rejected('invalid_world_choice', before);
+        state.addChat(ChatRole.player, choices.first.text);
+        _resolveWorldTurn(choices.first);
+        break;
     }
 
     return GameResult(
@@ -149,6 +165,57 @@ class GameEngine {
       dayAfter: state.daysSurvived,
       events: List<GameEventRecord>.unmodifiable(_emitted),
     );
+  }
+
+  /// A proposed scene and its discovered elements are accepted atomically.
+  /// The LLM can *describe* a location but cannot force movement or inventory.
+  GameResult acceptWorldTurn(StoryTurn turn) {
+    final before = state.daysSurvived;
+    _emitted = [];
+    final issue = _worldStoryValidator.rejection(state, turn);
+    if (issue != null) return _rejected(issue, before);
+    state.generatedElements.addAll(turn.generatedElements);
+    state.pendingWorldTurn = turn;
+    state.log = turn.story;
+    _record('world_turn_${turn.id}', EventKind.system, turn.story);
+    return GameResult(
+      accepted: true, code: 'world_story_offered',
+      dayBefore: before, dayAfter: state.daysSurvived,
+      events: List<GameEventRecord>.unmodifiable(_emitted),
+    );
+  }
+
+  void _resolveWorldTurn(TurnChoice choice) {
+    final turn = state.pendingWorldTurn!;
+    state.pendingWorldTurn = null;
+    switch (choice.intent) {
+      case StoryIntent.move:
+        state.currentLocationId = choice.targetId!;
+        state.noise = min(100, state.noise + 2);
+        break;
+      case StoryIntent.investigate:
+        state.noise = min(100, state.noise + 4);
+        break;
+      case StoryIntent.talk:
+        if (state.companion != null) {
+          state.companion!.trust = min(100, state.companion!.trust + 1);
+        }
+        break;
+      case StoryIntent.observe:
+        state.noise = max(0, state.noise - 2);
+        break;
+    }
+    state.latestChoiceSummary = choice.text;
+    final summary = '${choice.text} (행동: ${choice.intent.name})';
+    state.rememberStory(StoryMemory(
+      key: 'world_choice_${turn.id}_${choice.id}',
+      day: state.currentDay, summary: summary,
+      threadId: 'world_${turn.id}',
+      tags: ['world', choice.intent.name, choice.targetId ?? ''],
+    ));
+    state.archiveWorldTurn(turn);
+    _record('world_choice_${choice.id}', EventKind.system, summary);
+    _endDay(summary);
   }
 
   void _resolveDirectedEvent(String choiceId) {
@@ -377,7 +444,7 @@ class GameEngine {
     state.daysSurvived++;
     state.bestDays = max(state.bestDays, state.daysSurvived);
 
-    if (!state.npcMet &&
+    if (!state.interactiveMode && !state.npcMet &&
         state.daysSurvived >= 2 &&
         _random.nextDouble() < 0.35) {
       state.npcMet = true;
@@ -389,7 +456,7 @@ class GameEngine {
     }
     // Offer continuing story beats after an ordinary day finishes. The
     // player chooses before the next main action; this costs no extra day.
-    if (!state.waitingForChoice) {
+    if (!state.interactiveMode && !state.waitingForChoice) {
       final beat = _storySystem.maybeOffer(state);
       if (beat != null) {
         summary += '\n' + beat.premise;

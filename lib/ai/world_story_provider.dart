@@ -39,8 +39,8 @@ class StoryContext {
               'trait': state.companion!.trait.name,
             },
         ],
-        'generated_elements': state.generatedElements
-            .take(50).map((v) => {
+        'generated_elements': state.generatedElements.reversed
+            .take(15).toList().reversed.map((v) => {
               'id': v.id, 'name': v.name, 'kind': v.kind.name,
               'description': v.description, 'parentId': v.parentId,
             }).toList(),
@@ -87,20 +87,25 @@ class ProceduralWorldStoryProvider implements WorldStoryProvider {
       parentId: context.data['location_id'] as String,
       createdDay: day,
     );
+    final canExpand = existing.length < 480;
     return StoryTurn(
       id: id,
       story: '$location에서 ${latest.isEmpty ? '낯선 금속성 소음' : '이전 행동의 흔적'}이 '
           '느껴진다. 복도 끝에서 $name 표지판이 발견되었다. '
           '안쪽에서 약한 빛이 새어 나온다.',
       choices: [
-        TurnChoice(id: 'move', text: '$name 쪽으로 이동한다',
-            intent: StoryIntent.move, targetId: newId),
+        if (canExpand)
+          TurnChoice(id: 'move', text: '$name 쪽으로 이동한다',
+              intent: StoryIntent.move, targetId: newId)
+        else
+          const TurnChoice(id: 'talk', text: '주변에 사람이 있는지 확인한다',
+              intent: StoryIntent.talk),
         const TurnChoice(id: 'investigate', text: '주변 흔적을 조사한다',
             intent: StoryIntent.investigate),
         const TurnChoice(id: 'observe', text: '안전한 곳에서 지켜본다',
             intent: StoryIntent.observe),
       ],
-      generatedElements: [element],
+      generatedElements: canExpand ? [element] : [],
     );
   }
 }

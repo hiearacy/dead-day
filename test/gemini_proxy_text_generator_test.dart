@@ -17,9 +17,9 @@ void main() {
       expect(input['prompt'], 'scenario and game state');
       expect(input['maxOutputTokens'], 128);
       expect(input['temperature'], 0.75);
-      return http.Response(jsonEncode({
+      return http.Response.bytes(utf8.encode(jsonEncode({
         'text': '{"type":"strangerAtDoor","premise":"문이 천천히 열린다."}',
-      }), 200);
+      })), 200, headers: {'content-type': 'application/json; charset=utf-8'});
     });
     final generator = GeminiProxyTextGenerator(
       endpoint: endpoint, demoToken: 'demo-token', client: client,

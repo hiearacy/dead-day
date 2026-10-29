@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'chat_message.dart';
+import 'generated_world_element.dart';
+import 'story_turn.dart';
 import 'directed_event_choice.dart';
 import 'event_record.dart';
 import 'world_profile.dart';
@@ -110,6 +112,12 @@ class GameState {
     List<StoryThread>? storyThreads,
     this.pendingStory,
     this.pendingDirectedEvent,
+    this.pendingWorldTurn,
+    this.interactiveMode = false,
+    String? currentLocationId,
+    List<GeneratedWorldElement>? generatedElements,
+    List<StoryTurn>? recentWorldTurns,
+    this.latestChoiceSummary = '',
     List<ChatMessage>? messages,
     this.messageSerial = 0,
     this.lastDirectedEventDay = -1,
@@ -121,13 +129,18 @@ class GameState {
     List<GameEventRecord>? journal,
     this.log = '생존 1일차. 바깥에는 좀비가 가득하다. 오늘 무엇을 할까?',
   }) : world = world ?? WorldProfile.seoul,
+       currentLocationId = currentLocationId ??
+           'start_${(world ?? WorldProfile.seoul).id}',
+       generatedElements = generatedElements ?? <GeneratedWorldElement>[],
+       recentWorldTurns = recentWorldTurns ?? <StoryTurn>[],
        scenario = scenario ?? ScenarioCatalog.openSurvival,
        storyMemories = storyMemories ?? <StoryMemory>[],
        storyThreads = storyThreads ?? <StoryThread>[],
        messages = messages ?? <ChatMessage>[],
        journal = journal ?? <GameEventRecord>[];
 
-  static const int saveVersion = 5;
+  static const int saveVersion = 6;
+  static const int maxRecentWorldTurns = 4;
   static const int maxStoryMemories = 12;
   static const int maxChatMessages = 80;
 
@@ -139,6 +152,7 @@ class GameState {
     return GameState(
       world: place,
       scenario: scenario,
+      interactiveMode: true,
       bestDays: bestDays,
       food: place.food,
       water: place.water,
@@ -168,6 +182,12 @@ class GameState {
   final List<StoryThread> storyThreads;
   StoryBeat? pendingStory;
   PendingDirectedEvent? pendingDirectedEvent;
+  StoryTurn? pendingWorldTurn;
+  bool interactiveMode;
+  String currentLocationId;
+  final List<GeneratedWorldElement> generatedElements;
+  final List<StoryTurn> recentWorldTurns;
+  String latestChoiceSummary;
   final List<ChatMessage> messages;
   int messageSerial;
   int lastDirectedEventDay;
@@ -182,7 +202,7 @@ class GameState {
   int get currentDay => daysSurvived + 1;
   bool get waitingForChoice =>
       encounter != null || pendingRecruitment || pendingStory != null ||
-      pendingDirectedEvent != null;
+      pendingDirectedEvent != null || pendingWorldTurn != null;
   bool get canStartAction => !gameOver && !waitingForChoice;
 
   void addChat(ChatRole role, String text, {String? speaker, String? eventId}) {
@@ -193,6 +213,13 @@ class GameState {
     ));
     while (messages.length > maxChatMessages) {
       messages.removeAt(0);
+    }
+  }
+
+  void archiveWorldTurn(StoryTurn turn) {
+    recentWorldTurns.add(turn);
+    while (recentWorldTurns.length > maxRecentWorldTurns) {
+      recentWorldTurns.removeAt(0);
     }
   }
 
@@ -226,6 +253,12 @@ class GameState {
         'storyThreads': storyThreads.map((t) => t.toJson()).toList(),
         'pendingStory': pendingStory?.toJson(),
         'pendingDirectedEvent': pendingDirectedEvent?.toJson(),
+        'interactiveMode': interactiveMode,
+        'pendingWorldTurn': pendingWorldTurn?.toJson(),
+        'currentLocationId': currentLocationId,
+        'generatedElements': generatedElements.map((e) => e.toJson()).toList(),
+        'recentWorldTurns': recentWorldTurns.map((t) => t.toJson()).toList(),
+        'latestChoiceSummary': latestChoiceSummary,
         'messages': messages.map((message) => message.toJson()).toList(),
         'messageSerial': messageSerial,
         'lastDirectedEventDay': lastDirectedEventDay,
@@ -242,8 +275,8 @@ class GameState {
   /// extending the schema; do not silently discard player progress.
   factory GameState.fromJson(Map<String, dynamic> json) {
     final version = (json['saveVersion'] as num?)?.toInt();
-    if (version != 1 && version != 2 && version != 3 && version != 4 &&
-        version != saveVersion) {
+    if (version != 1 && version != 2 && version != 3 &&
+        version != 4 && version != 5 && version != saveVersion) {
       throw const FormatException('지원하지 않는 저장 버전입니다.');
     }
     final encounterJson = json['encounter'];
@@ -255,6 +288,9 @@ class GameState {
     final rawThreads = json['storyThreads'];
     final rawPendingStory = json['pendingStory'];
     final rawDirectedEvent = json['pendingDirectedEvent'];
+    final rawWorldTurn = json['pendingWorldTurn'];
+    final rawGeneratedElements = json['generatedElements'];
+    final rawRecentTurns = json['recentWorldTurns'];
     return GameState(
       daysSurvived: (json['daysSurvived'] as num?)?.toInt() ?? 0,
       bestDays: (json['bestDays'] as num?)?.toInt() ?? 0,
@@ -266,6 +302,23 @@ class GameState {
       noise: ((json['noise'] as num?)?.toInt() ?? 0).clamp(0, 100).toInt(),
       world: WorldProfile.byId(rawWorld is Map ? rawWorld['id'] as String? : null),
       scenario: ScenarioCatalog.byId(json['scenarioId'] as String?),
+      interactiveMode: json['interactiveMode'] == true,
+      currentLocationId: json['currentLocationId'] as String?,
+      latestChoiceSummary: json['latestChoiceSummary'] as String? ?? '',
+      pendingWorldTurn: rawWorldTurn is Map
+          ? StoryTurn.fromJson(Map<String, dynamic>.from(rawWorldTurn))
+          : null,
+      generatedElements: rawGeneratedElements is List
+          ? rawGeneratedElements.whereType<Map>().map((e) =>
+              GeneratedWorldElement.fromJson(Map<String, dynamic>.from(e)))
+              .take(50).toList()
+          : <GeneratedWorldElement>[],
+      recentWorldTurns: rawRecentTurns is List
+          ? rawRecentTurns.whereType<Map>().map((e) =>
+              StoryTurn.fromJson(Map<String, dynamic>.from(e)))
+              .toList().reversed.take(maxRecentWorldTurns).toList()
+              .reversed.toList()
+          : <StoryTurn>[],
       storyMemories: rawMemories is List
           ? rawMemories.whereType<Map>()
               .map((value) => StoryMemory.fromJson(Map<String, dynamic>.from(value)))

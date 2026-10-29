@@ -3,6 +3,7 @@ import 'dart:math';
 import '../game/models.dart';
 import '../game/story_turn.dart';
 import '../game/generated_world_element.dart';
+import 'world_context_selector.dart';
 
 /// Compact, bounded view of the current world. Never send full chat history.
 class StoryContext {
@@ -44,13 +45,16 @@ class StoryContext {
             },
         ],
         'generated_element_count': state.generatedElements.length,
-        'inventory': state.inventory.map((item) => {
+        'inventory_count': state.inventory.length,
+        'inventory': state.inventory.reversed.take(15).map((item) => {
           'id': item.elementId, 'quantity': item.quantity,
         }).toList(growable: false),
-        'generated_elements': state.generatedElements.reversed
-            .take(15).toList().reversed.map((v) => {
+        'generated_elements': const WorldContextSelector().select(state)
+            .map((v) => {
               'id': v.id, 'name': v.name, 'kind': v.kind.name,
-              'description': v.description, 'parentId': v.parentId,
+              'description': v.description.length > 120
+                  ? v.description.substring(0, 120) : v.description,
+              'parentId': v.parentId,
             }).toList(),
         'memories': state.storyMemories.reversed
             .take(8).map((v) => v.summary).toList(),

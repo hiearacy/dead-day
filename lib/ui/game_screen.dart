@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../app/game_controller.dart';
 import '../game/models.dart';
+import '../game/scenario_definition.dart';
+import '../game/story_turn.dart';
 import '../game/story_memory.dart';
 import '../game/directed_event_choice.dart';
 
@@ -43,6 +45,11 @@ class GameScreen extends StatelessWidget {
               Text('생존 ' + state.daysSurvived.toString() +
                 '일 · 최고 ' + state.bestDays.toString() + '일',
                 style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 8),
+              Text('시나리오: ${state.scenario.title} · 현재: ${state.currentLocationId}',
+                style: const TextStyle(fontSize: 12, color: Colors.white70)),
+              Text('발견한 세계 요소 ${state.generatedElements.length}개',
+                style: const TextStyle(fontSize: 12, color: Colors.white70)),
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 _Stat('체력', state.health.toString() + '/100', Icons.favorite),
@@ -84,6 +91,10 @@ class GameScreen extends StatelessWidget {
                 _storyChoices(state.pendingStory!, state)
               else if (state.pendingDirectedEvent != null)
                 _directedChoices(state.pendingDirectedEvent!)
+              else if (state.pendingWorldTurn != null)
+                _worldStoryChoices(state.pendingWorldTurn!)
+              else if (state.interactiveMode)
+                _worldStoryLoading()
               else
                 _mainActions(state),
               const SizedBox(height: 12),
@@ -98,7 +109,7 @@ class GameScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('오프라인 플레이 가능 · 로컬 AI는 아직 미연결',
+              const Text('Gemini API 사용 가능 · 연결 실패 시 규칙 기반 대체 진행',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.white54)),
             ],
@@ -186,6 +197,36 @@ class GameScreen extends StatelessWidget {
     ],
   );
 
+  Widget _worldStoryLoading() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (controller.generatingWorldStory)
+        const Center(child: CircularProgressIndicator())
+      else
+        FilledButton(
+          onPressed: controller.requestWorldStory,
+          child: const Text('다음 이야기 생성'),
+        ),
+    ],
+  );
+
+  Widget _worldStoryChoices(StoryTurn turn) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Text('어떻게 행동할까?',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      const SizedBox(height: 8),
+      for (final choice in turn.choices)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: FilledButton.tonal(
+            onPressed: () => controller.chooseWorldTurn(choice.id),
+            child: Text(choice.text),
+          ),
+        ),
+    ],
+  );
+
   // Functional-only buttons, to be replaced by the designer's chat controls.
   Widget _directedChoices(PendingDirectedEvent event) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,24 +286,31 @@ class GameScreen extends StatelessWidget {
   );
 
   Future<void> _confirmReset(BuildContext context) async {
-    final reset = await showDialog<bool>(
+    final scenario = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('새 게임 시작'),
-        content: const Text('현재 기록은 종료되고 최고 생존 일수는 유지됩니다.'),
+        title: const Text('시나리오 선택'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final entry in ScenarioCatalog.scenarios)
+              ListTile(
+                title: Text(entry.title),
+                subtitle: Text(entry.premise,
+                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                onTap: () => Navigator.pop(dialogContext, entry.id),
+              ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('새 게임'),
           ),
         ],
       ),
     );
-    if (reset == true) await controller.newGame();
+    if (scenario != null) await controller.newGame(scenarioId: scenario);
   }
 }
 

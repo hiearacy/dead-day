@@ -10,6 +10,7 @@ import 'game_action.dart';
 import 'models.dart';
 import 'npc_system.dart';
 import 'story_memory.dart';
+import 'item.dart';
 import 'story_system.dart';
 
 /// The authoritative rules engine. No Flutter or model runtime imports here.
@@ -202,6 +203,15 @@ class GameEngine {
         break;
       case StoryIntent.observe:
         state.noise = max(0, state.noise - 2);
+        break;
+      case StoryIntent.collect:
+        final exists = state.inventory.any((item) =>
+            item.elementId == choice.targetId);
+        if (!exists) {
+          state.inventory.add(ItemStack(
+            elementId: choice.targetId!, quantity: 1,
+          ));
+        }
         break;
     }
     state.latestChoiceSummary = choice.text;

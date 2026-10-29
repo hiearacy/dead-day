@@ -31,7 +31,7 @@ class _TypewriterTextState extends State<TypewriterText>
 
   void _startReveal() {
     _reveal.duration = Duration(
-      milliseconds: (_graphemes.length * widget.milliseconds).clamp(1, 12000),
+      milliseconds: (_graphemes.length * widget.milliseconds).clamp(1, 12000).toInt(),
     );
     _reveal.forward(from: 0);
   }
@@ -61,7 +61,7 @@ class _TypewriterTextState extends State<TypewriterText>
       animation: Listenable.merge([_reveal, _cursor]),
       builder: (context, _) {
         final count = (_graphemes.length * _reveal.value)
-            .round().clamp(0, _graphemes.length);
+            .round().clamp(0, _graphemes.length).toInt();
         final visible = _graphemes.take(count).join();
         final showCaret = _reveal.isAnimating && _cursor.value >= 0.45;
         return Semantics(

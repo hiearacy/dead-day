@@ -1,81 +1,70 @@
-# Dead Day — system / designer integration contract (v0.6)
+# Dead Day v0.7 — UI/UX handoff and engine contract
 
-## Responsibility split
-- **Developer (Flutter + Dart engine)**: authoritative rules, persistence, event catalogue, companion decision logic, AI boundary and automated tests.
-- **UI/UX designer**: screens, transitions, typography, icons, visual effects, button placement, pacing and presentation. Current `lib/ui/game_screen.dart` is only a disposable programmer prototype.
-- Changes to visual presentation must never become dependencies inside `lib/game/`.
+**The UI/UX team owns presentation. The engine team owns state, game rules,
+AI response validation and persistence.** No screen animation may mutate
+GameState.
 
-## Data flow
-```text
-User tap or validated NPC intent
-          |
-          v
-GameController.dispatch(GameAction)
-          |
-          v
-GameEngine.execute(GameAction)   [sync, authoritative]
-          |
-          +--> GameResult (accepted, code, dayBefore/dayAfter, events[])
-          +--> GameState (updated stats, pending choices, journal)
-          |
-          +--> SaveService -> versioned JSON, independent of UI
-          +--> Optional AiNarrator for important events only
-                              |
-                              +--> short read-only Korean flavor text
-```
+## Fresh-run flow
 
-### GameAction
-- `GameAction.explore(Zone.market | Zone.pharmacy | Zone.apartments)`
-- `const GameAction.rest()`
-- `const GameAction.useMedicine()`
-- `GameAction.resolve(EncounterAction.fight | flee | sneak)`
-- `GameAction.recruit(bool accept)`
-- `GameAction.chooseStory(String choiceId)` (only when `pendingStory` is present)
-- `GameAction.chooseDirectedEvent(String choiceId)` (only when `pendingDirectedEvent` is present)
+1. `controller.newGame(scenarioId: 'lost_signal')` selects the Scenario.
+   An unsaved first launch uses the default scenario.
+2. `GameController.requestWorldStory()` calls the selected
+   `WorldStoryProvider` (Gemini API or procedural fallback).
+3. On valid output, `GameEngine.acceptWorldTurn(turn)` records any new
+   world elements and sets `state.pendingWorldTurn`.
+4. UI renders `pendingWorldTurn.story` and
+   `pendingWorldTurn.choices` (exactly three).
+5. UI calls `controller.chooseWorldTurn(choice.id)`. The controller calls
+   `GameEngine.execute(GameAction.chooseWorldTurn(...))`.
+6. The engine validates the target, processes movement/inventory/noise,
+   advances day/consumption, writes memories and archive, and saves.
+7. The controller requests the next story automatically.
 
-Always send actions through `GameController.dispatch(...)`; do **not** mutate `GameState` from UI code. The old controller methods (`rest()`, etc.) remain as convenience wrappers.
+**Do not** call Gemini directly from UI, interpret story text as instructions,
+or mutate `state.inventory`, `state.currentLocationId`,
+`state.generatedElements` or player stats from widgets.
 
-### GameResult
-- `accepted`: false on illegal actions such as attempting to rest during an unresolved zombie encounter.
-- `code`: `ok`, `game_over`, `pending_decision`, `no_encounter`, `no_recruitment`, or `medicine_unavailable`.
-- `dayBefore/dayAfter`: complete days survived.
-- `events`: event IDs and categories created by this action, not a UI script.
+## Fields for screen rendering
 
-### GameState (persistent)
-- Health, food, water, medicine, weapon level and noise (0-100).
-- `daysSurvived`, `bestDays`, `gameOver`.
-- `encounter`, `pendingRecruitment`, companion info.
-- `scenario`: selected authored setting and rules (three current presets).
-- `pendingStory`: unresolved authored story beat + typed choices, must be shown when not null.
-- `pendingDirectedEvent`: unresolved Gemini/procedural incident, with typed choices. Render it under the latest world message and dispatch a choice before proceeding.
-- `storyMemories`, `storyThreads`: bounded causal memory and continuing story state.
-- `journal`: most recent 24 structured `GameEventRecord` entries (`id`, `day`, `kind`, `text`). UI can display or animate these but must not infer gameplay rules by parsing Korean text.
-- `log`: a temporary fallback text field for the existing programmer UI.
-- `world`: immutable-by-run `WorldProfile` (region, biome, starting shelter, dynamic exploration site labels, initial supplies, danger offset).
-- `messages`: up to 80 saved `ChatMessage` instances, with `role`, `speaker`, `day`, `text`, and `sourceEventId`. A UI should render these in conversational order.
-- The engine can accept `EventProposal` after `DirectedEventSystem` validates region, NPC, date, and rarity. The fallback `ProceduralEventDirector` works with no LLM.
+| Read from controller/state | Use |
+| --- | --- |
+| `state.scenario.title` | Scenario label |
+| `state.messages` | Chronological chat bubbles: player/world/NPC/system |
+| `state.pendingWorldTurn?.story` | Current AI-generated story |
+| `state.pendingWorldTurn?.choices` | Three action chips/buttons |
+| `state.currentLocationId` | Active world location |
+| `state.worldState.locations` | Discovered AI-created locations |
+| `state.worldState.characters` | Generated NPC facts, not companions yet |
+| `state.inventory` | Owned item IDs and quantities |
+| `state.health / food / water / daysSurvived` | Survival UI |
+| `controller.generatingWorldStory` | Pending backend response spinner |
+| `controller.error` | Error/fallback notice |
 
-**Pending decisions**: `state.encounter != null` means fight/sneak/flee must be chosen; `state.pendingRecruitment` means accept/decline must be chosen. A single event cannot be resolved twice.
+The current `lib/ui/game_screen.dart` is a deliberately disposable
+developer prototype. It shows the latest eight chat messages, three buttons,
+a minimal scenario selector and status values.
 
-## Chat interface and opening typewriter direction — handed to UI/UX designer
-See `docs/CHAT_AND_DIRECTOR.md` for message stream rules, auto-scroll behavior and exact designer handoff.
-On first run: dark/empty screen, **blinking text caret** before any letters appear, then the opening text is typed one glyph at a time ("다다다닥" rhythm). This is a **presentation-only effect**, not a game tick, and must not trigger AI inference per character.
+## Typewriter
 
-Implementation notes for the designer's team (not implemented by the engine):
-- Use a prewritten intro script, no model call during intro.
-- Allow tap-to-complete and skip, including replay after reopening.
-- Support user/device reduced-motion preference: show text immediately when animation is disabled.
-- Avoid per-character sound or haptic by default. Dispose animation timers when navigating.
-- Keep the script separate from the game rules; animation finishing should not increment survival days.
+`lib/ui/typewriter_text.dart` reveals the latest world message one
+grapheme at a time with a blinking cursor. It honors reduced-motion settings
+by showing text instantly. This is **client-only animation after a complete
+JSON response**, not streamed Gemini tokens. The final designer may replace
+speed, typography, scrolling, cursor and skip-to-end behavior without
+changing the engine.
 
-## Cloud Gemini API boundary (v0.5)
-- `AiScene.fromGame(state)` provides capped outcome, three recent event excerpts, three NPC memory excerpts and small stats.
-- `NoAiNarrator` remains the fallback narration adapter on Android, iOS and Web. **The event director can optionally use Gemini through a key-protected backend proxy**; it does not run models on the device.
-- The Gemini API may propose bounded narrative events, but never an inventory change, death result, arbitrary game action or trust update. The engine validates every proposal; model failures fall back to scripted events.
-- Only notable companion, combat or horde events request optional narration; the initial Gemini proxy is for the event director, not narration. Model/API failure must never block play.
+## Older saves
 
-## Cross-platform/testing
-- No platform code or plugin imports under `lib/game/`.
-- Old v1/v2/v3/v4 saves automatically migrate to v5; preserve this in future releases.
-- Android, iOS and Web share the same deterministic game rules.
-- Run `flutter analyze`, `flutter test`, Android and Web builds. Physical device thermal checks and iOS builds are later validation steps.
+The v6 save schema can load v1–v5 saves. Those legacy saved runs keep their
+earlier mechanics (`interactiveMode=false`). A newly started game enables
+the world-generating AI loop.
+
+## Boundaries / known gaps
+
+The JSON validator checks exact ID references, action target types, duplicates
+and allowed choices. It does not fully prove that creative prose is logically
+consistent. New characters do not automatically become recruited NPCs;
+discovered items do not enter inventory until a validated `collect`
+choice. AI quality and live Gemini deployment are pending verification.
+
+Full technical contract: [AI world loop](AI_WORLD_LOOP_V07.md).

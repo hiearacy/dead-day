@@ -44,6 +44,9 @@ class StoryContext {
             },
         ],
         'generated_element_count': state.generatedElements.length,
+        'inventory': state.inventory.map((item) => {
+          'id': item.elementId, 'quantity': item.quantity,
+        }).toList(growable: false),
         'generated_elements': state.generatedElements.reversed
             .take(15).toList().reversed.map((v) => {
               'id': v.id, 'name': v.name, 'kind': v.kind.name,
@@ -83,10 +86,11 @@ class ProceduralWorldStoryProvider implements WorldStoryProvider {
     final latest = context.data['latest_choice'] as String? ?? '';
     final id = 'world_turn_${day}_${count}_fallback';
     final newId = 'discovery_${day}_${count}';
-    final name = ['폐쇄된 통제실', '비상 계단', '봉쇄된 보급실']
+    final site = ['폐쇄된 통제실', '비상 계단', '봉쇄된 보급실']
         [_rng.nextInt(3)];
+    final name = '$region ${count + 1}구역의 $site';
     final element = GeneratedWorldElement(
-      id: newId, name: '$region $name',
+      id: newId, name: name,
       kind: WorldElementKind.location,
       description: '조사를 계속할 수 있는 폐쇄된 공간.',
       parentId: context.data['location_id'] as String,

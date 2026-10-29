@@ -3,7 +3,7 @@ import 'event_record.dart';
 
 /// UI, future NPC agents and tests send the same typed commands to the engine.
 /// Never let an AI-produced string invoke arbitrary code or write game state.
-enum GameActionType { explore, rest, useMedicine, resolveEncounter, recruit, chooseStory, chooseDirectedEvent }
+enum GameActionType { explore, rest, useMedicine, resolveEncounter, recruit, chooseStory, chooseDirectedEvent, chooseWorldTurn }
 
 class GameAction {
   const GameAction._(this.type, {this.zone, this.encounterAction, this.accept, this.choiceId});
@@ -26,6 +26,8 @@ class GameAction {
       GameAction._(GameActionType.chooseStory, choiceId: choiceId);
   factory GameAction.chooseDirectedEvent(String choiceId) =>
       GameAction._(GameActionType.chooseDirectedEvent, choiceId: choiceId);
+  factory GameAction.chooseWorldTurn(String choiceId) =>
+      GameAction._(GameActionType.chooseWorldTurn, choiceId: choiceId);
 }
 
 /// Immutable result contract for future UI / replay / AI narration.

@@ -1,7 +1,6 @@
 import 'dart:math';
 import '../ai/event_director.dart';
 import 'chat_message.dart';
-import 'generated_world_element.dart';
 import 'story_turn.dart';
 import 'world_story_validator.dart';
 import 'directed_event_system.dart';

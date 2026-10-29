@@ -1,7 +1,7 @@
 import 'generated_world_element.dart';
 
 /// Typed player intent. The engine chooses effects, not the model.
-enum StoryIntent { investigate, move, talk, observe }
+enum StoryIntent { investigate, move, talk, observe, collect }
 
 class TurnChoice {
   const TurnChoice({

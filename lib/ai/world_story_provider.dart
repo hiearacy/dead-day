@@ -39,6 +39,7 @@ class StoryContext {
               'trait': state.companion!.trait.name,
             },
         ],
+        'generated_element_count': state.generatedElements.length,
         'generated_elements': state.generatedElements.reversed
             .take(15).toList().reversed.map((v) => {
               'id': v.id, 'name': v.name, 'kind': v.kind.name,
@@ -74,10 +75,10 @@ class ProceduralWorldStoryProvider implements WorldStoryProvider {
     final day = (context.data['day'] as num).toInt();
     final region = context.data['region'] as String;
     final location = context.data['location_name'] as String;
-    final existing = context.data['generated_elements'] as List;
+    final count = (context.data['generated_element_count'] as num).toInt();
     final latest = context.data['latest_choice'] as String? ?? '';
-    final id = 'world_turn_${day}_${existing.length}_fallback';
-    final newId = 'discovery_${day}_${existing.length}';
+    final id = 'world_turn_${day}_${count}_fallback';
+    final newId = 'discovery_${day}_${count}';
     final name = ['폐쇄된 통제실', '비상 계단', '봉쇄된 보급실']
         [_rng.nextInt(3)];
     final element = GeneratedWorldElement(
@@ -87,7 +88,7 @@ class ProceduralWorldStoryProvider implements WorldStoryProvider {
       parentId: context.data['location_id'] as String,
       createdDay: day,
     );
-    final canExpand = existing.length < 480;
+    final canExpand = count < 480;
     return StoryTurn(
       id: id,
       story: '$location에서 ${latest.isEmpty ? '낯선 금속성 소음' : '이전 행동의 흔적'}이 '

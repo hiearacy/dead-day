@@ -33,15 +33,19 @@ class WorldStoryValidator {
     }
     final existing = state.generatedElements.map((v) => v.id).toSet();
     final proposed = <String>{};
+    final existingNames = state.generatedElements
+        .map((v) => v.name.trim().toLowerCase()).toSet();
     for (final element in turn.generatedElements) {
       if (!RegExp(r'^[a-z][a-z0-9_]{2,63}$').hasMatch(element.id) ||
           element.name.trim().isEmpty || element.name.length > 70 ||
-          element.description.length > 300 ||
+          element.description.length > 300 || !element.discovered ||
+          !existingNames.add(element.name.trim().toLowerCase()) ||
           element.origin != 'ai_generated' ||
           element.createdDay != state.currentDay ||
           existing.contains(element.id) || !proposed.add(element.id)) {
         return 'invalid_or_duplicate_element';
       }
+      if (element.parentId == element.id) return 'cyclic_parent';
       if (element.parentId != null &&
           element.parentId != state.currentLocationId &&
           !existing.contains(element.parentId) &&
@@ -71,6 +75,15 @@ class WorldStoryValidator {
               element.kind == WorldElementKind.location);
           if (match.isEmpty) return 'not_a_location';
         }
+      } else if (choice.intent == StoryIntent.collect) {
+        if (choice.targetId == null || !knownIds.contains(choice.targetId)) {
+          return 'unknown_collect_target';
+        }
+        final match = [
+          ...state.generatedElements, ...turn.generatedElements,
+        ].where((v) => v.id == choice.targetId &&
+            v.kind == WorldElementKind.item);
+        if (match.isEmpty) return 'not_an_item';
       } else if (choice.targetId != null && !knownIds.contains(choice.targetId)) {
         return 'unknown_target';
       }

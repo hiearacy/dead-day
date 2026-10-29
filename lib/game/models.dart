@@ -327,7 +327,7 @@ class GameState {
       generatedElements: rawGeneratedElements is List
           ? rawGeneratedElements.whereType<Map>().map((e) =>
               GeneratedWorldElement.fromJson(Map<String, dynamic>.from(e)))
-              .take(50).toList()
+              .take(500).toList()
           : <GeneratedWorldElement>[],
       recentWorldTurns: rawRecentTurns is List
           ? rawRecentTurns.whereType<Map>().map((e) =>

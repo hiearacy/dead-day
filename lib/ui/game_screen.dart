@@ -41,11 +41,10 @@ class GameScreen extends StatelessWidget {
               child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('DAY ' + state.currentDay.toString().padLeft(2, '0'),
+              Text('DAY ${state.currentDay.toString().padLeft(2, '0')}',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold)),
-              Text('생존 ' + state.daysSurvived.toString() +
-                '일 · 최고 ' + state.bestDays.toString() + '일',
+              Text('생존 ${state.daysSurvived}일 · 최고 ${state.bestDays}일',
                 style: const TextStyle(color: Colors.white70)),
               const SizedBox(height: 8),
               Text('시나리오: ${state.scenario.title} · 현재: ${state.currentLocationId}',
@@ -54,11 +53,11 @@ class GameScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 12, color: Colors.white70)),
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: [
-                _Stat('체력', state.health.toString() + '/100', Icons.favorite),
+                _Stat('체력', '${state.health}/100', Icons.favorite),
                 _Stat('식량', state.food.toString(), Icons.restaurant),
                 _Stat('식수', state.water.toString(), Icons.water_drop),
                 _Stat('의약품', state.medicine.toString(), Icons.medication),
-                _Stat('무기', state.weaponLevel.toString() + '/2', Icons.shield),
+                _Stat('무기', '${state.weaponLevel}/2', Icons.shield),
               ]),
               const SizedBox(height: 16),
               Card(
@@ -135,9 +134,7 @@ class GameScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(14),
                   child: Text(state.companion == null
                     ? '동료: 없음'
-                    : '동료: ' + state.companion!.name +
-                      ' · 신뢰 ' + state.companion!.trust.toString() +
-                      ' · 친밀 ' + state.companion!.affection.toString()),
+                    : '동료: ${state.companion!.name} · 신뢰 ${state.companion!.trust} · 친밀 ${state.companion!.affection}'),
                 ),
               ),
               const SizedBox(height: 16),
@@ -191,7 +188,7 @@ class GameScreen extends StatelessWidget {
   Widget _encounter(Encounter encounter) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('위험: 좀비 ' + encounter.zombies.toString() + '마리',
+      Text('위험: 좀비 ${encounter.zombies}마리',
         style: const TextStyle(color: Colors.redAccent,
           fontSize: 18, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
@@ -308,7 +305,7 @@ class GameScreen extends StatelessWidget {
         const Text('GAME OVER',
           style: TextStyle(color: Colors.redAccent,
             fontSize: 24, fontWeight: FontWeight.bold)),
-        Text('최종 생존 ' + controller.state.daysSurvived.toString() + '일'),
+        Text('최종 생존 ${controller.state.daysSurvived}일'),
         FilledButton(
           onPressed: controller.newGame,
           child: const Text('다시 시작'),

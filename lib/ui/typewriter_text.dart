@@ -1,4 +1,3 @@
-import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 
 /// Functional text-reveal component; not a Gemini streaming implementation.

@@ -6,7 +6,6 @@ import 'package:dead_day/game/generated_world_element.dart';
 import 'package:dead_day/game/models.dart';
 import 'package:dead_day/game/story_turn.dart';
 import 'package:dead_day/ai/world_story_provider.dart';
-import 'package:dead_day/game/world_profile.dart';
 
 class QuietRandom implements Random {
   const QuietRandom();

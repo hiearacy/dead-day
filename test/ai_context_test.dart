@@ -11,7 +11,7 @@ void main() {
     }
     final state = GameState(
       companion: companion,
-      log: '확정 사건 ' + (List.filled(500, '나').join()),
+      log: '확정 사건 ${List.filled(500, '나').join()}',
     );
     for (var i = 0; i < 7; i++) {
       state.record(GameEventRecord(

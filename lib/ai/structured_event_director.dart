@@ -36,7 +36,9 @@ class StructuredAiEventDirector implements EventDirector {
       if (typeName is! String || premise is! String) return null;
       final match = DirectedEventType.values.where((v) => v.name == typeName);
       if (match.isEmpty || premise.trim().length < 8 ||
-          premise.trim().length > 180) return null;
+          premise.trim().length > 180) {
+        return null;
+      }
 
       final locationId = decoded['locationId'];
       final npcName = decoded['npcName'];

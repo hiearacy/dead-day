@@ -87,7 +87,9 @@ class GameController extends ChangeNotifier {
   /// No state is mutated while waiting for network/model output.
   Future<void> requestWorldStory() async {
     if (generatingWorldStory || _disposed || !state.interactiveMode ||
-        state.gameOver || state.waitingForChoice) return;
+        state.gameOver || state.waitingForChoice) {
+      return;
+    }
     final engine = _engine;
     final sequence = _sequence;
     generatingWorldStory = true;
@@ -97,7 +99,9 @@ class GameController extends ChangeNotifier {
         StoryContext.fromGame(engine.state),
       );
       if (_disposed || engine != _engine || sequence != _sequence ||
-          engine.state.waitingForChoice) return;
+          engine.state.waitingForChoice) {
+        return;
+      }
       var applied = engine.acceptWorldTurn(proposal);
       if (!applied.accepted) {
         // A provider can return structurally valid JSON that still

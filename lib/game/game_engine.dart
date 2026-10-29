@@ -468,7 +468,7 @@ class GameEngine {
     if (!state.interactiveMode && !state.waitingForChoice) {
       final beat = _storySystem.maybeOffer(state);
       if (beat != null) {
-        summary += '\n' + beat.premise;
+        summary += '\n${beat.premise}';
         _record('story_${beat.id}', EventKind.system, beat.premise);
       }
     }

@@ -85,7 +85,7 @@ class ProceduralWorldStoryProvider implements WorldStoryProvider {
     final count = (context.data['generated_element_count'] as num).toInt();
     final latest = context.data['latest_choice'] as String? ?? '';
     final id = 'world_turn_${day}_${count}_fallback';
-    final newId = 'discovery_${day}_${count}';
+    final newId = 'discovery_${day}_$count';
     final site = ['폐쇄된 통제실', '비상 계단', '봉쇄된 보급실']
         [_rng.nextInt(3)];
     final name = '$region ${count + 1}구역의 $site';

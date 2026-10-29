@@ -1,105 +1,108 @@
-# Dead Day v0.5 — Gemini API switch (PRIVATE TESTING)
+# Gemini API setup — Dead Day v0.7 (PRIVATE PROTOTYPE)
 
-The game is now **Flutter (Android/iOS/Web) -> authenticated proxy -> Gemini API**.
-No local inference runtime or model downloads are used. Survival, inventory,
-choices, NPC mechanics, and story consequences are still local Dart code.
+## How it works
 
-## Why a proxy?
-Google explicitly warns not to embed Gemini API keys inside a mobile or web
-client. Keys embedded in apps can be extracted and can exhaust your free quota
-or create charges if you later turn on billing. The repository contains **no**
-Gemini API key. `GEMINI_API_KEY` lives only in the Cloudflare Worker secret.
+```text
+Flutter (Android/iOS/Web)
+     |  /v1/story, short StoryContext JSON, prototype bearer credential
+     v
+Cloudflare Worker (backend/src/index.js)
+     |  server-owned Gemini key + rate-limit demo
+     v
+LlmProvider.generateStory(context)
+     -> GeminiProvider (backend/src/gemini_provider.js)
+     -> validated complete JSON: story + 3 choices + generated_elements
+     v
+Flutter WorldStoryValidator -> GameEngine -> local save -> next StoryContext
+```
 
-## Model and free tier
-The Worker defaults to `gemini-2.5-flash-lite`, which Google currently lists
-with free-tier input/output usage for eligible projects. The **actual**
-requests-per-minute, tokens-per-minute, and requests-per-day limits are
-project/model-specific: open Google AI Studio's rate limits page and verify
-your own values. Google can change these limits. Exceeding the quota typically
-causes a 429 and **automatically falls back** to the local *rule-based*
-event generator (not a local AI model).
+The old `/v1/director` API remains as a legacy experiment. Fresh game runs
+use **`/v1/story`**, not fixed event categories. The frontend sends scenario
+rules, current location, survival stats, owned items, relevant generated
+world elements, important memories, unresolved threads, recent story excerpts
+and the last choice. It never sends the entire chat history.
 
-Important privacy limitation: Google's Gemini Developer API **free tier**
-may use submitted content to improve Google products. The prototype sends
-small scenario/game-state/memory summaries to Gemini; do not send personal
-secrets. Review Google's terms and disclose AI processing before public launch.
+## Credentials, cost and privacy
 
-References:
+**Never commit a Gemini API key to GitHub or place it in Flutter.**
+The key belongs in Cloudflare Worker secret `GEMINI_API_KEY`.
+The model ID is configured by `GEMINI_MODEL` in `backend/wrangler.toml`
+(change it in settings, not in the game source).
+
+Google AI Studio offers eligible free-tier API usage for certain Gemini
+models, subject to account/project/model limits that can change. Check
+current quota and any billing account before enabling paid usage:
 - https://ai.google.dev/gemini-api/docs/pricing
 - https://ai.google.dev/gemini-api/docs/rate-limits
-- https://ai.google.dev/gemini-api/docs/api-key
-- https://developers.cloudflare.com/workers/platform/pricing/
+- https://aistudio.google.com/apikey
 
-## Setup (developer action required)
-1. At https://aistudio.google.com/apikey create a Gemini API key in a free-tier
-   eligible project; **do not paste it in chat or commit it to GitHub**.
-2. Create/log in to a Cloudflare account (Workers has a free plan) and on
-   your machine run, in `backend/`:
-   ```bash
-   npm install
-   npx wrangler login
-   npx wrangler secret put GEMINI_API_KEY
-   npx wrangler secret put DEMO_ACCESS_TOKEN
-   npm run deploy
-   ```
-   Generate a random **32+ character** `DEMO_ACCESS_TOKEN` and type it
-   into the secret prompt, not into source. This is a **private-prototype
-   shared token**, NOT production-grade authentication.
-3. Note your deployed `https://...workers.dev` hostname.
-4. For a local Android/iOS **private test build only**, configure:
-   ```bash
-   flutter run \
-     --dart-define=DEAD_DAY_AI_PROXY_URL=https://YOUR_WORKER.workers.dev/v1/director \
-     --dart-define=DEAD_DAY_PRIVATE_DEMO_TOKEN=YOUR_PRIVATE_TEST_TOKEN
-   ```
-   Windows PowerShell may need a single line instead. Do not put the token
-   in a public screenshot, issue, repository, CI build artifact, or released app.
-5. For Flutter Web browser testing, configure the Worker secret or variable
-   `ALLOWED_WEB_ORIGIN` to the exact trusted web origin (scheme + host + port).
-   An app from any other browser origin is rejected; mobile normally has no
-   browser Origin header. Browser CORS is **not** authentication.
+The API sends scenario and game-state content to Google. Free-tier terms may
+allow provider product improvement; verify current terms and disclose processing
+before public release. Keep real personal information out of story context.
 
-If either Dart build setting is omitted, the game uses
-`ProceduralEventDirector` and continues without Gemini.
+## Deploy a private test Worker
 
-## Security caveat: do not ship the demo token to users
-A bearer token in a compiled mobile/browser app is recoverable. The Worker
-has approximate 6-request/minute rate limiting for internal testing, but this
-is NOT a strict global daily Gemini quota; Cloudflare's rate limit counters
-are edge-local. **Before a public release**:
-- Replace shared-token auth with server-verified user identity (e.g. Firebase
-  Auth ID token verification) and per-user quotas.
-- Enforce a strict global daily budget and allowlisting/rate limiting.
-- Apply abuse prevention and usage monitoring.
-- Review data retention, privacy notices, app terms and API safety filtering.
+From `backend/` after installing Node.js:
 
-## Runtime behavior
-`AiConfiguration.createDirector()` uses the proxy **only when test config
-is supplied**. Otherwise the procedural director remains the default.
-On eligible story days:
-1. `DirectorContext` builds a short Korean scenario + memory prompt.
-2. `GeminiProxyTextGenerator` sends the prompt over HTTPS to your Worker.
-3. Worker adds server-owned constraints and calls Gemini generateContent,
-   requesting a JSON object (max 128 output tokens by default).
-4. `StructuredAiEventDirector` parses and checks the proposed event.
-5. `GameEngine` validates world/NPC and rarity, then saves a pending choice event. **No stats change before the player responds.**
-6. `GameAction.chooseDirectedEvent` validates the choice and applies fixed effects. The choice is written to causal memory; the AI never changes stats itself.
-7. If network fails, Gemini returns 429, response format breaks or config
-   is absent, fall back to deterministic/procedural events. Nothing pauses
-   the core survival game.
-
-## Validate
 ```bash
-cd backend
 npm install
 npm test
-```
-```bash
-flutter pub get
-flutter analyze
-flutter test
-flutter run -d chrome
+npx wrangler login
+npx wrangler secret put GEMINI_API_KEY
+npx wrangler secret put DEMO_ACCESS_TOKEN
+npm run deploy
 ```
 
-No remote Worker deployment or real-key API calls are executed from ChatGPT.
-Backend tests use fake responses. User must configure secrets and deploy.
+Provide a long random 32+ character `DEMO_ACCESS_TOKEN` via the secret
+prompt. Do **not** paste credentials into a GitHub issue, chat, source file,
+README, or public CI artifact. This shared demo credential is recoverable
+from client binaries and browser JavaScript. **It is only for local/private
+developer testing, never for public releases**.
+
+Copy your deployed Worker URL, such as
+`https://YOUR_WORKER.workers.dev`.
+
+For a private Android test build:
+
+```bash
+flutter run --dart-define=DEAD_DAY_AI_PROXY_URL=https://YOUR_WORKER.workers.dev/v1/story --dart-define=DEAD_DAY_PRIVATE_DEMO_TOKEN=YOUR_PRIVATE_TEST_TOKEN
+```
+
+For Web, set Worker `ALLOWED_WEB_ORIGIN` to the exact Flutter Web origin.
+CORS is not authentication; the demo token is still unsafe for public sites.
+
+When either configuration value is absent, or the API fails/quota runs out,
+`ProceduralWorldStoryProvider` creates basic scenes and keeps the game
+playable. No local LLM is downloaded.
+
+## Provider contract
+
+`backend/src/llm_provider.js` defines:
+
+```js
+class LlmProvider {
+  async generateStory(context) { /* returns a StoryTurn proposal */ }
+}
+```
+
+`GeminiProvider` uses the server-side `GEMINI_MODEL` variable. A future
+provider can implement the same interface; GameEngine never depends on the
+model vendor. Complete JSON is returned before the typewriter UI animates
+it. There is no streaming-JSON requirement in the MVP.
+
+Story generation asks for three choices with `intent` and optional
+`target_id` fields. The backend checks JSON format, and Flutter validates
+referential consistency and mechanical actions. **No AI output can directly
+edit a resource or inventory value**.
+
+## Required before external distribution
+
+- Real server-verified user authentication (e.g. a verified Firebase token).
+- Per-user rate limits and a **centralized daily Gemini budget**.
+- Monitoring of input/output tokens, provider latency and request failures.
+- Story and privacy safety policy, user notices and content handling.
+- API credentials rotated and securely stored.
+- Deployed Worker and authenticated client integration actually tested.
+
+The repo includes fake-response tests but **no deployed Worker, live API
+key or verified Gemini generation call** in this implementation turn.

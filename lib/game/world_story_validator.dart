@@ -17,15 +17,18 @@ class WorldStoryValidator {
       return 'invalid_turn_id';
     }
     if (turn.story.trim().length < 20 || turn.story.length > 1800 ||
-        turn.story.contains(RegExp(r'[\u0000-\u001f]'))) {
+        turn.story.contains(RegExp(r'[\u0000-\u0009\u000b-\u001f]'))) {
       return 'invalid_story';
+    }
+    if (state.recentWorldTurns.any((old) => old.id == turn.id)) {
+      return 'duplicate_turn';
     }
     if (turn.choices.length != 3 ||
         turn.choices.map((v) => v.id).toSet().length != 3) {
       return 'choices_must_be_three_unique';
     }
     if (turn.generatedElements.length > 4 ||
-        state.generatedElements.length + turn.generatedElements.length > 50) {
+        state.generatedElements.length + turn.generatedElements.length > 500) {
       return 'too_many_world_elements';
     }
     final existing = state.generatedElements.map((v) => v.id).toSet();

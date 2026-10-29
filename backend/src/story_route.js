@@ -33,7 +33,7 @@ function validContext(context) {
 function validateAndNormalizeStory(raw, context) {
   if (!raw || typeof raw !== "object" ||
       typeof raw.story !== "string" || raw.story.trim().length < 20 ||
-      raw.story.length > 1800 || /[\\u0000-\\u0009\\u000b-\\u001f]/.test(raw.story) ||
+      raw.story.length > 1800 || /[\u0000-\u0009\u000b-\u001f]/.test(raw.story) ||
       !Array.isArray(raw.choices) || raw.choices.length !== 3 ||
       !Array.isArray(raw.generated_elements) ||
       raw.generated_elements.length > 2) {
@@ -73,7 +73,7 @@ function validateAndNormalizeStory(raw, context) {
   const choices = raw.choices.map((choice, index) => {
     if (!choice || typeof choice.text !== "string" ||
         choice.text.trim().length < 3 || choice.text.length > 120 ||
-        /[\\u0000-\\u001f]/.test(choice.text) ||
+        /[\u0000-\u001f]/.test(choice.text) ||
         !["investigate", "move", "talk", "observe", "collect"].includes(choice.intent)) {
       throw new Error("invalid_choice_schema");
     }

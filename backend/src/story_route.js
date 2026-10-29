@@ -38,7 +38,7 @@ function validateAndNormalizeStory(raw, context) {
   const choices = raw.choices.map((choice, index) => {
     if (!choice || typeof choice.text !== "string" ||
         choice.text.length < 3 || choice.text.length > 120 ||
-        !["investigate", "move", "talk", "observe"].includes(choice.intent)) {
+        !["investigate", "move", "talk", "observe", "collect"].includes(choice.intent)) {
       throw new Error("invalid_choice_schema");
     }
     return {

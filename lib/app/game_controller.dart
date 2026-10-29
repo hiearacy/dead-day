@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../ai/narrator.dart';
+import '../ai/world_story_provider.dart';
 import '../ai/event_director.dart';
 import '../ai/procedural_director.dart';
 import '../game/chat_message.dart';
@@ -12,14 +13,18 @@ import '../game/models.dart';
 /// UI adapter: gameplay decisions always go through the Dart engine.
 /// AI is optional, read-only, and invoked for notable events only.
 class GameController extends ChangeNotifier {
-  GameController({SaveService? saves, AiNarrator? narrator, EventDirector? director})
+  GameController({SaveService? saves, AiNarrator? narrator,
+      EventDirector? director, WorldStoryProvider? worldStoryProvider})
       : _saves = saves ?? SaveService(),
         _narrator = narrator ?? const NoAiNarrator(),
-        _director = director ?? ProceduralEventDirector();
+        _director = director ?? ProceduralEventDirector(),
+        _worldStoryProvider = worldStoryProvider ?? ProceduralWorldStoryProvider();
 
   final SaveService _saves;
   final AiNarrator _narrator;
   final EventDirector _director;
+  final WorldStoryProvider _worldStoryProvider;
+  bool generatingWorldStory = false;
   GameEngine _engine = GameEngine(initialState: GameState.newRun());
   Future<void> _saveQueue = Future<void>.value();
   int _sequence = 0;
@@ -41,6 +46,9 @@ class GameController extends ChangeNotifier {
     } finally {
       loading = false;
       _notify();
+    }
+    if (!_disposed && state.interactiveMode && !state.waitingForChoice) {
+      await requestWorldStory();
     }
   }
 
@@ -72,6 +80,48 @@ class GameController extends ChangeNotifier {
     await dispatch(GameAction.chooseDirectedEvent(choiceId));
   }
 
+  Future<void> chooseWorldTurn(String choiceId) async {
+    await dispatch(GameAction.chooseWorldTurn(choiceId));
+  }
+
+  /// No state is mutated while waiting for network/model output.
+  Future<void> requestWorldStory() async {
+    if (generatingWorldStory || _disposed || !state.interactiveMode ||
+        state.gameOver || state.waitingForChoice) return;
+    final engine = _engine;
+    final sequence = _sequence;
+    generatingWorldStory = true;
+    _notify();
+    try {
+      final proposal = await _worldStoryProvider.generate(
+        StoryContext.fromGame(engine.state),
+      );
+      if (_disposed || engine != _engine || sequence != _sequence ||
+          engine.state.waitingForChoice) return;
+      var applied = engine.acceptWorldTurn(proposal);
+      if (!applied.accepted) {
+        // A provider can return structurally valid JSON that still
+        // contradicts the engine. Never trust it; try the same local fallback.
+        final fallback = await ProceduralWorldStoryProvider().generate(
+          StoryContext.fromGame(engine.state),
+        );
+        applied = engine.acceptWorldTurn(fallback);
+      }
+      if (applied.accepted) {
+        lastResult = applied;
+        _notify();
+        await _persist();
+      } else {
+        error = '새 장면을 검증하지 못했습니다. 다시 시도할 수 있습니다.';
+      }
+    } catch (_) {
+      error = '이야기 생성에 실패했습니다. 다시 시도할 수 있습니다.';
+    } finally {
+      generatingWorldStory = false;
+      _notify();
+    }
+  }
+
   /// This one API can later be used by UI, scripts and validated NPC agents.
   Future<GameResult> dispatch(GameAction action) async {
     final result = _engine.execute(action);
@@ -81,6 +131,12 @@ class GameController extends ChangeNotifier {
     final sequence = ++_sequence;
     _notify();
     await _persist();
+    if (action.type == GameActionType.chooseWorldTurn &&
+        sequence == _sequence && state.interactiveMode &&
+        !state.waitingForChoice && !state.gameOver) {
+      await requestWorldStory();
+      return result;
+    }
 
     // Skip stale requests: a newer action or a new game may have started.
     // The director can propose a rare situation after a fully completed day.
@@ -142,6 +198,7 @@ class GameController extends ChangeNotifier {
     error = null;
     _notify();
     await _persist();
+    if (state.interactiveMode) await requestWorldStory();
   }
 
   Future<void> _persist() {

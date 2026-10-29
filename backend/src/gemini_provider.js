@@ -11,7 +11,8 @@ const GUIDANCE = [
   "새 장소를 창작할 수 있지만 플레이어를 그곳으로 이동시킨 것은 아니다.",
   "플레이어가 알 수 없는 비밀을 확정된 사실처럼 서술하지 마라.",
   "사건은 해결 직전에서 멈추고 서로 다른 방향의 선택지 정확히 3개를 제시한다.",
-  "각 선택의 intent는 investigate, move, talk, observe 중 하나이다.",
+  "각 선택의 intent는 investigate, move, talk, observe, collect 중 하나이다.",
+  "collect는 이미 알려진 item ID 또는 이번에 선언한 item ID를 target_id에 적는다.",
   "move는 이미 알려진 location ID 또는 이번 생성에서 추가한 location ID를 target_id에 적는다.",
   "기존 엔진이 자원 소비, 생사, 이동, 관계 수치를 결정한다. AI는 결말을 강제하지 않는다.",
   "최근 이야기의 반복을 피하고 이전 플레이어 선택의 흔적을 자연스럽게 반영한다.",
@@ -34,7 +35,7 @@ export class GeminiProvider extends LlmProvider {
         output: {
           story: "한국어 120~600자 사건 도입, 아직 확정되지 않은 결과는 서술 금지",
           choices: [
-            { id: "choice_1", text: "행동 묘사", intent: "move|investigate|talk|observe",
+            { id: "choice_1", text: "행동 묘사", intent: "move|investigate|talk|observe|collect",
               target_id: "move인 경우 이동 장소의 id, 아니면 null" },
             { id: "choice_2", text: "행동 묘사", intent: "investigate", target_id: null },
             { id: "choice_3", text: "행동 묘사", intent: "observe", target_id: null },

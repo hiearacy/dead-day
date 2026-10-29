@@ -2,6 +2,7 @@ import 'dart:math';
 import 'chat_message.dart';
 import 'generated_world_element.dart';
 import 'story_turn.dart';
+import 'world_state.dart';
 import 'directed_event_choice.dart';
 import 'event_record.dart';
 import 'world_profile.dart';
@@ -198,6 +199,11 @@ class GameState {
   Companion? companion;
   final List<GameEventRecord> journal;
   String log;
+
+  WorldState get worldState => WorldState(
+      currentLocationId: currentLocationId,
+      elements: List<GeneratedWorldElement>.unmodifiable(generatedElements),
+    );
 
   int get currentDay => daysSurvived + 1;
   bool get waitingForChoice =>

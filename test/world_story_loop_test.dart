@@ -158,4 +158,40 @@ void main() {
     expect(loaded.interactiveMode, isFalse);
     expect(loaded.currentLocationId, startsWith('start_'));
   });
+
+  test('remote locations cannot be selected as teleport destinations', () {
+    final state = GameState.newRun(random: const QuietRandom());
+    state.generatedElements.addAll([
+      GeneratedWorldElement(
+        id: 'location_branch_a', name: 'A 통로',
+        kind: WorldElementKind.location,
+        description: '현재 자리의 연결 통로',
+        parentId: state.currentLocationId, createdDay: state.currentDay,
+      ),
+      GeneratedWorldElement(
+        id: 'location_remote', name: '멀리 떨어진 구역',
+        kind: WorldElementKind.location,
+        description: 'A 통로 너머의 먼 구역',
+        parentId: 'location_branch_a', createdDay: state.currentDay,
+      ),
+    ]);
+    final before = state.toJson().toString();
+    final remoteTurn = StoryTurn(
+      id: 'invalid_teleport',
+      story: '통로 너머 멀리 떨어진 구역의 불빛이 보인다. '
+          '현재 위치에서 바로 건너갈 수는 없을 것 같다.',
+      choices: const [
+        TurnChoice(id: 'go', text: '먼 구역으로 순간이동한다',
+            intent: StoryIntent.move, targetId: 'location_remote'),
+        TurnChoice(id: 'look', text: '주변을 조사한다',
+            intent: StoryIntent.investigate),
+        TurnChoice(id: 'wait', text: '여기서 기다린다',
+            intent: StoryIntent.observe),
+      ],
+      generatedElements: const [],
+    );
+    final result = GameEngine(initialState: state).acceptWorldTurn(remoteTurn);
+    expect(result.code, 'unreachable_destination');
+    expect(state.toJson().toString(), before);
+  });
 }

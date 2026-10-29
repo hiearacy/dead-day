@@ -14,7 +14,7 @@ const GUIDANCE = [
   "사건은 해결 직전에서 멈추고 서로 다른 방향의 선택지 정확히 3개를 제시한다.",
   "각 선택의 intent는 investigate, move, talk, observe, collect 중 하나이다.",
   "collect는 이미 알려진 item ID 또는 이번에 선언한 item ID를 target_id에 적는다.",
-  "move는 이미 알려진 location ID 또는 이번 생성에서 추가한 location ID를 target_id에 적는다.",
+  "move는 현재 위치, 현재 위치의 부모/자식 연결 장소 또는 이번에 현재 위치 아래 만든 장소만 목적지로 삼는다.",
   "기존 엔진이 자원 소비, 생사, 이동, 관계 수치를 결정한다. AI는 결말을 강제하지 않는다.",
   "최근 이야기의 반복을 피하고 이전 플레이어 선택의 흔적을 자연스럽게 반영한다.",
   "전체 답변은 JSON 객체 하나로만 출력한다.",

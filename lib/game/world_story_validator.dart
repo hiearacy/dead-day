@@ -58,6 +58,11 @@ class WorldStoryValidator {
       ...existing,
       ...proposed,
     };
+    final knownElements = <String, GeneratedWorldElement>{
+      for (final v in [...state.generatedElements, ...turn.generatedElements])
+        v.id: v,
+    };
+    final current = knownElements[state.currentLocationId];
     for (final choice in turn.choices) {
       if (!RegExp(r'^[a-zA-Z0-9_-]{1,50}$').hasMatch(choice.id) ||
           choice.text.trim().length < 3 || choice.text.length > 120 ||
@@ -74,6 +79,10 @@ class WorldStoryValidator {
           ].where((element) => element.id == choice.targetId &&
               element.kind == WorldElementKind.location);
           if (match.isEmpty) return 'not_a_location';
+          final destination = match.first;
+          final adjacent = destination.parentId == state.currentLocationId ||
+              current?.parentId == destination.id;
+          if (!adjacent) return 'unreachable_destination';
         }
       } else if (choice.intent == StoryIntent.collect) {
         if (choice.targetId == null || !knownIds.contains(choice.targetId)) {
@@ -84,6 +93,12 @@ class WorldStoryValidator {
         ].where((v) => v.id == choice.targetId &&
             v.kind == WorldElementKind.item);
         if (match.isEmpty) return 'not_an_item';
+        if (match.first.parentId != state.currentLocationId) {
+          return 'item_not_here';
+        }
+        if (state.inventory.any((item) => item.elementId == choice.targetId)) {
+          return 'item_already_owned';
+        }
       } else if (choice.targetId != null && !knownIds.contains(choice.targetId)) {
         return 'unknown_target';
       }

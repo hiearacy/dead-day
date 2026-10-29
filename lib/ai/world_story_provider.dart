@@ -30,6 +30,14 @@ class StoryContext {
             .map((v) => v.name)
             .firstOrNull ?? state.world.shelter,
         'region': state.world.label,
+        'adjacent_location_ids': [
+          if (state.worldState.find(state.currentLocationId)?.parentId case final String parent)
+            parent,
+          ...state.generatedElements.where((element) =>
+              element.kind == WorldElementKind.location &&
+              element.parentId == state.currentLocationId)
+              .take(12).map((element) => element.id),
+        ],
         'player': {
           'health': state.health,
           'food': state.food,

@@ -91,4 +91,42 @@ void main() {
     expect(data['inventory'], isEmpty);
     expect((data['scenario'] as Map)['items'], isNotEmpty);
   });
+
+  test('invented item in another room cannot be collected remotely', () {
+    final state = GameState.newRun(random: const QuietRandom());
+    final remote = GeneratedWorldElement(
+      id: 'item_remote', name: '다른 방의 물자',
+      kind: WorldElementKind.item,
+      description: '다른 방에 놓인 물건', parentId: 'location_far',
+      createdDay: state.currentDay,
+    );
+    state.generatedElements.addAll([
+      GeneratedWorldElement(
+        id: 'location_far', name: '먼 장소',
+        kind: WorldElementKind.location,
+        description: '현재 위치에서 연결되는 장소',
+        parentId: state.currentLocationId,
+        createdDay: state.currentDay,
+      ),
+      remote,
+    ]);
+    final before = state.toJson().toString();
+    final turn = StoryTurn(
+      id: 'remote_pickup',
+      story: '반대편 방에서 어렴풋한 소리가 들려온다. '
+          '멀리 물자가 보이지만 아직 손에 닿지 않는다.',
+      choices: const [
+        TurnChoice(id: 'take', text: '다른 방 물자를 챙긴다',
+            intent: StoryIntent.collect, targetId: 'item_remote'),
+        TurnChoice(id: 'look', text: '주변을 조사한다',
+            intent: StoryIntent.investigate),
+        TurnChoice(id: 'wait', text: '그대로 기다린다',
+            intent: StoryIntent.observe),
+      ],
+      generatedElements: const [],
+    );
+    expect(GameEngine(initialState: state).acceptWorldTurn(turn).code,
+        'item_not_here');
+    expect(state.toJson().toString(), before);
+  });
 }

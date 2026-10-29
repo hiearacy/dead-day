@@ -5,9 +5,13 @@ import '../game/models.dart';
 /// Save a tiny single-player state. No internet connection is needed.
 class SaveService {
   SaveService({SharedPreferencesAsync? preferences})
-      : _preferences = preferences ?? SharedPreferencesAsync();
+      : _overridePreferences = preferences;
 
-  final SharedPreferencesAsync _preferences;
+  // Lazily create the device plugin only when a real read/write is needed.
+  // This keeps pure controller/widget tests free from plugin initialization.
+  final SharedPreferencesAsync? _overridePreferences;
+  late final SharedPreferencesAsync _preferences =
+      _overridePreferences ?? SharedPreferencesAsync();
   static const _key = 'dead_day_save_v1';
 
   Future<GameState?> load() async {

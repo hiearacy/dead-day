@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dead_day/data/save_service.dart';
+import 'package:dead_day/game/models.dart';
 import 'package:dead_day/ai/world_story_provider.dart';
 import 'package:dead_day/app/game_controller.dart';
 import 'package:dead_day/game/generated_world_element.dart';
@@ -47,14 +48,28 @@ class RepeatableStoryProvider implements WorldStoryProvider {
   }
 }
 
+/// Snapshotting in-memory save adapter for deterministic controller tests.
+class MemorySaveService extends SaveService {
+  GameState? _saved;
+
+  @override
+  Future<GameState?> load() async =>
+      _saved == null ? null : GameState.fromJson(_saved!.toJson());
+
+  @override
+  Future<void> save(GameState state) async {
+    _saved = GameState.fromJson(state.toJson());
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('six-turn scenario persists generated world and resumes after restart',
       () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final saves = MemorySaveService();
     final provider = RepeatableStoryProvider();
-    final controller = GameController(worldStoryProvider: provider);
+    final controller = GameController(saves: saves, worldStoryProvider: provider);
     await controller.initialize();
 
     expect(provider.calls, 1);
@@ -74,7 +89,7 @@ void main() {
     controller.dispose();
 
     // The existing pending turn must not be silently rerolled on app restart.
-    final resumed = GameController(worldStoryProvider: provider);
+    final resumed = GameController(saves: saves, worldStoryProvider: provider);
     await resumed.initialize();
     expect(provider.calls, 4);
     expect(resumed.state.pendingWorldTurn?.id, 'session_story_4');

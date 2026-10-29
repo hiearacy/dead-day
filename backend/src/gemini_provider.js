@@ -1,4 +1,5 @@
 import { LlmProvider } from "./llm_provider.js";
+import { STORY_RESPONSE_SCHEMA } from "./story_schema.js";
 
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/";
 const GUIDANCE = [
@@ -65,6 +66,7 @@ export class GeminiProvider extends LlmProvider {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: "application/json",
+            responseJsonSchema: STORY_RESPONSE_SCHEMA,
             maxOutputTokens: 1024,
             temperature: 0.8,
           },

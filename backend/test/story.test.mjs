@@ -61,6 +61,12 @@ test("GeminiProvider uses configured model and holds the key server-side", async
     const body = JSON.parse(options.body);
     assert.match(body.contents[0].parts[0].text, /서울역/);
     assert.equal(body.generationConfig.responseMimeType, "application/json");
+    assert.equal(body.generationConfig.responseJsonSchema.properties.choices.minItems, 3);
+    assert.equal(body.generationConfig.responseJsonSchema.properties.choices.maxItems, 3);
+    assert.deepEqual(
+      body.generationConfig.responseJsonSchema.properties.choices.items.properties.intent.enum,
+      ["investigate", "move", "talk", "observe", "collect"],
+    );
     return new Response(JSON.stringify({
       candidates: [{ content: { parts: [{ text: JSON.stringify(proposed) }] } }],
     }), { status: 200 });

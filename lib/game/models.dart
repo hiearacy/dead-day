@@ -2,6 +2,7 @@ import 'dart:math';
 import 'chat_message.dart';
 import 'generated_world_element.dart';
 import 'story_turn.dart';
+import 'item.dart';
 import 'world_state.dart';
 import 'directed_event_choice.dart';
 import 'event_record.dart';
@@ -118,6 +119,7 @@ class GameState {
     String? currentLocationId,
     List<GeneratedWorldElement>? generatedElements,
     List<StoryTurn>? recentWorldTurns,
+    List<ItemStack>? inventory,
     this.latestChoiceSummary = '',
     List<ChatMessage>? messages,
     this.messageSerial = 0,
@@ -134,6 +136,7 @@ class GameState {
            'start_${(world ?? WorldProfile.seoul).id}',
        generatedElements = generatedElements ?? <GeneratedWorldElement>[],
        recentWorldTurns = recentWorldTurns ?? <StoryTurn>[],
+       inventory = inventory ?? <ItemStack>[],
        scenario = scenario ?? ScenarioCatalog.openSurvival,
        storyMemories = storyMemories ?? <StoryMemory>[],
        storyThreads = storyThreads ?? <StoryThread>[],
@@ -188,6 +191,7 @@ class GameState {
   String currentLocationId;
   final List<GeneratedWorldElement> generatedElements;
   final List<StoryTurn> recentWorldTurns;
+  final List<ItemStack> inventory;
   String latestChoiceSummary;
   final List<ChatMessage> messages;
   int messageSerial;
@@ -264,6 +268,7 @@ class GameState {
         'currentLocationId': currentLocationId,
         'generatedElements': generatedElements.map((e) => e.toJson()).toList(),
         'recentWorldTurns': recentWorldTurns.map((t) => t.toJson()).toList(),
+        'inventory': inventory.map((v) => v.toJson()).toList(),
         'latestChoiceSummary': latestChoiceSummary,
         'messages': messages.map((message) => message.toJson()).toList(),
         'messageSerial': messageSerial,
@@ -297,6 +302,7 @@ class GameState {
     final rawWorldTurn = json['pendingWorldTurn'];
     final rawGeneratedElements = json['generatedElements'];
     final rawRecentTurns = json['recentWorldTurns'];
+    final rawInventory = json['inventory'];
     return GameState(
       daysSurvived: (json['daysSurvived'] as num?)?.toInt() ?? 0,
       bestDays: (json['bestDays'] as num?)?.toInt() ?? 0,
@@ -309,6 +315,10 @@ class GameState {
       world: WorldProfile.byId(rawWorld is Map ? rawWorld['id'] as String? : null),
       scenario: ScenarioCatalog.byId(json['scenarioId'] as String?),
       interactiveMode: json['interactiveMode'] == true,
+      inventory: rawInventory is List
+          ? rawInventory.whereType<Map>().map((v) =>
+              ItemStack.fromJson(Map<String, dynamic>.from(v))).toList()
+          : <ItemStack>[],
       currentLocationId: json['currentLocationId'] as String?,
       latestChoiceSummary: json['latestChoiceSummary'] as String? ?? '',
       pendingWorldTurn: rawWorldTurn is Map

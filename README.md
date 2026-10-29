@@ -1,104 +1,109 @@
-# Dead Day
+# Dead Day — AI Interactive Story Platform
 
-**Dead Day** is an offline-first, cross-platform zombie survival text game made with **Flutter + Dart**. The goal is to survive as many days as possible. A single game engine and save format are shared between **Android, iOS and Web**.
+**Dead Day** is a scenario-grounded, AI-extended zombie survival story game
+built with Flutter and Dart for **Android, iOS and Web**.
 
-## v0.6: interactive Gemini-powered incidents
-- Shelter: rest or use medicine.
-- Three exploration zones: market, pharmacy, apartments.
-- Zombie encounters: fight, sneak or flee; outcomes are computed by Dart.
-- Daily food and water use, injury, death and best survival record.
-- One recruitable companion who helps recovery, consumes rations and can leave.
-- Automatic local saves via `shared_preferences` (platform-specific backing storage).
-- Typed `GameAction` -> `GameEngine.execute` -> `GameResult` with structured event records.
-- Nighttime event catalogue, noise-driven risk and capped NPC memories.
-- Version 1 saves migrate to version 2 (event journal + noise); all platforms retain the same JSON format.
-- New runs randomize a Seoul, Busan, Gangwon or Jeju starting environment, initial supplies and location-specific site descriptions.
-- Chat transcript is saved with player/world/NPC/system roles; UI/UX bubble rendering and typewriter effects are handed to the designer.
-- `ProceduralEventDirector` proposes lightweight, varied world events every three completed days when the game phase permits; the engine validates and caps all effects.
-- Future on-device AI can replace the director without changing gameplay rules. Optional `AiNarrator` is already defined; **no local LLM is bundled yet**.
-- Three authored scenario bibles are selectable via `controller.newGame(scenarioId: 'lost_signal')`.
-- Persistent `StoryMemory`, `StoryThread` and `pendingStory` implement two-step stories with choices that change later events.
-- Story decisions are typed engine actions and are saved, validated and resumed after app restart.
-- Replaced the planned on-device LLM with a Gemini API proxy (Cloudflare Worker example).
-- Gemini free-tier-compatible Flash-Lite is the initial configured model; availability and quotas vary by project.
-- No Gemini API key is ever embedded in Flutter or committed to the repository.
-- On 429, network error, invalid AI JSON or missing config, game falls back to procedural events.
-- Remote AI calls are **not active until the developer deploys a proxy and supplies private test settings**.
-- Gemini/defensive fallback event premises now **pause for a player decision** instead of immediately altering inventory.
-- Event-specific typed choices are stored across restarts, validated by the engine, and written to causal memory.
-- Procedural event fallback prefers categories not used in recent events.
-- v1/v2/v3/v4 saved games migrate to v5; the programmer UI provides minimal functional decision buttons.
-- Old v1/v2/v3 saves automatically migrate to v4.
+The central loop is **Scenario + authoritative GameState + player's last
+choice → AI-generated story and new world elements → engine validation →
+three player choices → engine-owned consequences → saved WorldState →
+next AI story**.
 
-## Run on Android, iOS or the Web
-1. Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) and run `flutter doctor`.
-2. Clone this repository. On **Windows / Linux**, generate Android and Web runners:
-   
-   ```bash
-   flutter create --project-name dead_day --platforms=android,web .
-   flutter pub get
-   flutter analyze
-   flutter test
-   ```
-   
-   On **macOS**, generate Android, iOS and Web runners instead:
-   
-   ```bash
-   flutter create --project-name dead_day --platforms=android,ios,web .
-   flutter pub get
-   flutter test
-   ```
+A scenario is a world bible, **not a completed plot or finite branch table**.
+The Gemini backend may introduce new locations, people, clues, items or
+events that fit its rules. The game engine alone decides time, resources,
+movement, inventory and death.
 
-3. Run on a selected device:
-   - **Android** (on Windows/macOS/Linux with Android tooling): `flutter run -d <android-device-id>`
-   - **Web** (Chrome or Edge with Flutter web support): `flutter run -d chrome` or `flutter run -d edge`
-   - **iOS** (requires **macOS + Xcode**): `flutter run -d <ios-device-id>`
+## v0.7 — first end-to-end vertical slice
 
-4. Build examples:
-   ```bash
-   flutter build apk --debug
-   flutter build web --release
-   # Run on macOS with Xcode for an iOS simulator:
-   flutter build ios --simulator --no-codesign
-   ```
+- Authored scenario bibles with setting, era, tone, rules, initial places,
+  characters, items and story seeds. Existing three scenarios remain.
+- Complete structured `StoryTurn` with `story`, exactly three choices,
+  and optional `generated_elements`.
+- Dynamic `WorldState` (AI-created locations, characters, items, clues and
+  events) with persistent IDs, known locations, current position and item
+  ownership separated from discovery.
+- The engine validates new elements and actions before changing any state.
+  Invalid AI JSON, nonexistent targets, duplicate names/IDs or unavailable
+  choices cannot grant resources or teleport the player.
+- Player decisions advance the survival day, consume food/water, and add
+  causal StoryMemory. Old story threads and recent StoryTurns are preserved.
+- Model-independent server `LlmProvider.generateStory(context)`; currently
+  `GeminiProvider` behind a secret-holding Cloudflare Worker.
+- Provider/connection failures fall back to a basic offline procedural
+  story generator (not a local LLM).
+- Basic three-choice Flutter interface with saved chat transcript and
+  typewriter reveal for the latest world message. Final visuals remain with
+  the UI/UX designer.
+- Versioned local save, v1–v5 migration to v6.
+- Old combat, scripted story and event systems remain in the repository for
+  legacy saved games; **fresh games use the dynamic story loop**.
 
-Use `flutter devices` to see connected devices. Android, iOS, and web project runners are generated by `flutter create` and are not yet committed to this repository; the cross-platform Dart source lives in `lib/`.
+## Project modules
 
-## Shared-code architecture
 ```text
 lib/
-  main.dart
-  ui/game_screen.dart          # responsive Flutter UI, shared on every target
-  app/game_controller.dart     # state and persistence coordinator
-  game/models.dart             # serializable cross-platform state
-  game/game_engine.dart        # source of truth for game mechanics
-  game/game_action.dart        # typed commands/results
-  game/event_record.dart       # structured event journal
-  game/event_system.dart       # nighttime event catalogue
-  game/npc_system.dart         # daily trust / departure rules
-  game/scenario_definition.dart   # authored scenario bible catalogue
-  game/story_memory.dart          # causal memories, threads and choices
-  game/story_system.dart          # branching follow-up events
-  game/directed_event_choice.dart # pending AI scene and typed choices
-  ai/structured_event_director.dart # provider-neutral JSON parser
-  ai/gemini_proxy_text_generator.dart # HTTPS client for Gemini proxy
-  ai/ai_configuration.dart           # demo config / fallback selection
-backend/src/index.js                 # secrets-only Gemini API relay
-backend/wrangler.toml                # Cloudflare Worker settings
-  game/world_profile.dart      # starting region presets and site naming
-  game/chat_message.dart       # UI-agnostic conversation records
-  game/directed_event_system.dart  # proposal validation / rule effects
-  ai/event_director.dart       # optional director interface
-  ai/procedural_director.dart  # low-power fallback event generator
-  data/save_service.dart       # shared_preferences storage
-  ai/narrator.dart             # optional narrative AI boundary
-test/game_engine_test.dart
-docs/GAME_DESIGN.md
+  game/scenario_definition.dart     # world bible and seed content
+  game/models.dart                  # GameState; v6 save schema
+  game/world_state.dart             # read-only world projection
+  game/generated_world_element.dart # invented world entities
+  game/location.dart, character.dart, item.dart
+  game/story_turn.dart              # three meaningful player choices
+  game/world_story_validator.dart   # untrusted scene validation
+  game/game_engine.dart             # authoritative mechanics
+  game/story_memory.dart            # causal memories and legacy threads
+  ai/world_story_provider.dart      # bounded context and offline fallback
+  ai/gemini_world_story_provider.dart
+  ai/ai_configuration.dart          # private-test API selection
+  app/game_controller.dart          # async generation and autosave
+  data/save_service.dart
+  ui/game_screen.dart               # temporary functional view
+  ui/typewriter_text.dart
+backend/
+  src/llm_provider.js               # provider contract
+  src/gemini_provider.js            # Google Gemini implementation
+  src/story_route.js                # structured JSON handling
+  src/index.js                      # private-test HTTP authentication/proxy
+test/
+  world_story_loop_test.dart        # growing world and save cycle
+  world_item_inventory_test.dart    # discovery vs possession
+  typewriter_text_test.dart
+  ... legacy and proxy regression tests
 ```
 
-Game rules never depend on AI. The optional **Gemini API** event director needs internet, while the procedural fallback and local survival game keep working without it. No model download or on-device inference is required. AI may propose a situation, but only the Dart engine validates and executes mechanical changes.
+## Run locally
 
-## Cross-platform verification
-GitHub Actions on the `main` branch regenerates Android/Web runners and attempts `flutter analyze`, `flutter test`, `flutter build web --release`, and `flutter build apk --debug`. iOS compilation additionally needs a macOS/Xcode environment.
+Install Flutter and Android tooling (`flutter doctor`). From the repository
+root:
 
-**Status:** Source has been committed, but individual platform builds and physical-device heat/performance tests are not independently confirmed until CI or a local build succeeds. See [Game Design](docs/GAME_DESIGN.md) and [Engine/UI handoff contract](docs/ENGINE_API.md) and [chat/event director spec](docs/CHAT_AND_DIRECTOR.md) and [scenario / story specification](docs/SCENARIO_STORY_V04.md) and [Gemini API private-test setup](docs/GEMINI_API_SETUP.md) and [interactive Gemini event spec](docs/GEMINI_EVENT_CHOICES_V06.md).
+```bash
+flutter create --project-name dead_day --platforms=android,web .
+flutter pub get
+flutter analyze
+flutter test
+flutter run -d chrome
+```
+
+On macOS with Xcode you can also generate an iOS runner with
+`flutter create --project-name dead_day --platforms=android,ios,web .`.
+
+Without private API configuration, the **procedural story fallback works**
+and the game can still be played. For actual Gemini stories, deploy the
+backend and configure private test credentials as explained in
+[Gemini setup](docs/GEMINI_API_SETUP.md). **Never ship a Gemini API key
+or a shared demo bearer token in a public app.**
+
+## Specifications
+
+- [v0.7 world/story loop and JSON contract](docs/AI_WORLD_LOOP_V07.md)
+- [Gemini deployment and private testing](docs/GEMINI_API_SETUP.md)
+- [UI/UX developer handoff](docs/ENGINE_API.md)
+
+## Status / limitations
+
+The first architecture and tests have been **committed**. The assistant's
+execution environment does not have Flutter/Dart and cannot reach the GitHub
+host from its shell, so **Flutter test/analyze, mobile builds, live Gemini
+API calls and multi-session playtests are not confirmed**. The Gemini Worker
+has not been deployed with a real key. The current validator checks structure
+and references, not all possible semantic contradictions in creative prose.
+AI-authored NPC behavior and user-made scenarios remain future steps.

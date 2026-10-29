@@ -108,3 +108,48 @@ test("unauthenticated story requests are rejected before provider calls", async 
   );
   assert.equal(response.status, 401);
 });
+
+test("server rejects invalid AI targets before returning player choices", async () => {
+  for (const modified of [
+    { ...proposed, choices: proposed.choices.map((c, i) =>
+        i === 0 ? { ...c, target_id: "invented_fake_exit" } : c) },
+    { ...proposed, choices: proposed.choices.map((c, i) =>
+        i === 0 ? { ...c, intent: "collect", target_id: "location_b3" } : c) },
+    { ...proposed, choices: [proposed.choices[0], proposed.choices[0], proposed.choices[2]] },
+    { ...proposed, generated_elements: [
+        proposed.generated_elements[0], proposed.generated_elements[0],
+      ] },
+    { ...proposed, generated_elements: [{
+        ...proposed.generated_elements[0], parentId: "nonexistent_parent",
+      }] },
+  ]) {
+    const result = await handleStory({ context }, {}, null, {
+      generateStory: async () => modified,
+    });
+    assert.equal(result.status, 503);
+    assert.equal((await result.json()).error, "story_generation_unavailable");
+  }
+});
+
+test("server accepts coherent item pickup proposal", async () => {
+  const value = {
+    ...proposed,
+    generated_elements: [{
+      id: "item_radio", name: "고장 난 무전기",
+      kind: "item", description: "응급 호출에 쓰던 구형 무전기",
+      parentId: "start_seoul",
+    }],
+    choices: [
+      { text: "무전기를 챙긴다", intent: "collect", target_id: "item_radio" },
+      { text: "흔적을 조사한다", intent: "investigate", target_id: null },
+      { text: "숨어 기다린다", intent: "observe", target_id: null },
+    ],
+  };
+  const response = await handleStory({ context }, {}, null, {
+    generateStory: async () => value,
+  });
+  assert.equal(response.status, 200);
+  const { turn } = await response.json();
+  assert.equal(turn.choices[0].target_id, "item_radio");
+  assert.equal(turn.generated_elements[0].kind, "item");
+});

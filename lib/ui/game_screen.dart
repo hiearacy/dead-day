@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app/game_controller.dart';
+import 'typewriter_text.dart';
 import '../game/models.dart';
 import '../game/scenario_definition.dart';
 import '../game/story_turn.dart';
@@ -68,7 +69,7 @@ class GameScreen extends StatelessWidget {
                       Text('오늘의 기록',
                         style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 10),
-                      Text(state.log, style: const TextStyle(height: 1.6)),
+                      TypewriterText(text: state.log),
                       if (controller.aiText != null) ...[
                         const Divider(),
                         Text(controller.aiText!),
